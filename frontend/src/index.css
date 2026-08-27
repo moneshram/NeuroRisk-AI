@@ -1,0 +1,535 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  color: #e8f0ff;
+  background: #050b14;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      circle at 20% 10%,
+      rgba(55, 128, 255, 0.12),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 80% 20%,
+      rgba(146, 70, 255, 0.12),
+      transparent 30%
+    ),
+    #050b14;
+}
+button,
+input,
+select {
+  color-scheme: dark;
+  color: #e2e8f0;
+  background-color: rgba(15, 23, 42, 0.92);
+}
+.glass {
+  @apply border border-white/10 bg-white/[0.045] backdrop-blur-2xl shadow-2xl;
+}
+.glow-border {
+  box-shadow:
+    0 0 0 1px rgba(87, 160, 255, 0.12),
+    0 0 45px rgba(69, 120, 255, 0.09);
+}
+.field {
+  @apply w-full rounded-2xl border border-white/10
+    bg-white/[0.04]
+    px-4 py-3.5
+    text-sm text-white
+    outline-none
+    transition-all duration-300;
+
+  min-height: 60px;
+}
+
+.field::placeholder {
+  color: rgb(100 116 139);
+}
+
+.field:focus {
+  @apply border-cyan-300/50
+    bg-white/[0.07]
+    ring-4 ring-cyan-400/10;
+}
+.field-error {
+  @apply !border-rose-400/50;
+}
+.field-error:focus {
+  @apply !border-rose-400/50
+    !ring-rose-400/10;
+}
+.label {
+  @apply mb-2 block text-xs font-semibold uppercase tracking-widest text-slate-400;
+}
+.primary-btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-5 py-3 font-semibold text-slate-950 transition duration-300 hover:shadow-[0_0_30px_rgba(56,189,248,.25)] disabled:cursor-not-allowed disabled:opacity-50;
+}
+.ghost-btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 font-semibold text-white transition duration-300 hover:bg-white/[0.08];
+}
+/* Login / icon input alignment */
+.relative > .field {
+  padding-left: 3rem !important;
+  min-height: 54px;
+}
+
+.relative > svg {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Consistent form control sizing */
+.field {
+  min-height: 54px;
+}
+
+/* Keep authentication cards comfortably centered */
+.auth-card {
+  width: 100%;
+  max-width: 460px;
+  margin-left: auto;
+  margin-right: auto;
+}
+/* Beautiful custom dropdown animation */
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-dropdown {
+  animation: dropdownIn 180ms ease-out;
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* Theme system: dark remains the default; light mode is opt-in from Settings. */
+/* -------------------------------------------------------------------------- */
+
+html {
+  background: #050b14;
+  transition: background-color 240ms ease;
+}
+
+body {
+  transition: background-color 240ms ease, color 240ms ease;
+}
+
+.app-shell {
+  background: #050b14;
+}
+
+.nav-shell {
+  background: rgba(9, 19, 33, 0.95);
+}
+
+.result-core {
+  background: #07111f;
+}
+
+.chart-surface {
+  background: rgba(255, 255, 255, 0.02);
+  --chart-grid: rgba(255,255,255,.07);
+  --chart-label: rgb(100 116 139);
+  --chart-point-fill: #07111f;
+}
+
+.theme-option {
+  @apply flex min-h-[92px] w-full items-center gap-3 rounded-2xl border p-4 text-left transition-all duration-300;
+  border-color: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.theme-option:hover {
+  border-color: rgba(34, 211, 238, 0.35);
+  background: rgba(34, 211, 238, 0.06);
+}
+
+.theme-option-active {
+  border-color: rgba(34, 211, 238, 0.55);
+  background: rgba(34, 211, 238, 0.08);
+  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.08), 0 12px 35px rgba(34, 211, 238, 0.06);
+}
+
+.nav-active {
+  border-color: rgba(34, 211, 238, 0.35);
+  background: rgba(34, 211, 238, 0.08);
+}
+
+/* Light theme */
+html[data-theme="light"] {
+  color-scheme: light;
+  background: #f4f7fb;
+}
+
+html[data-theme="light"] body {
+  color: #172033;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(55, 128, 255, 0.10), transparent 30%),
+    radial-gradient(circle at 80% 20%, rgba(146, 70, 255, 0.08), transparent 30%),
+    #f4f7fb;
+}
+
+html[data-theme="light"] .app-shell {
+  background: transparent;
+  color: #172033;
+}
+
+html[data-theme="light"] .nav-shell {
+  background: rgba(255, 255, 255, 0.90);
+  border-color: rgba(15, 23, 42, 0.10);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme="light"] .glass {
+  border-color: rgba(15, 23, 42, 0.10);
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.07);
+}
+
+html[data-theme="light"] .ghost-btn {
+  border-color: rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.72);
+  color: #172033;
+}
+
+html[data-theme="light"] .ghost-btn:hover {
+  background: rgba(15, 23, 42, 0.05);
+}
+
+html[data-theme="light"] .field,
+html[data-theme="light"] input,
+html[data-theme="light"] select {
+  color-scheme: light;
+  color: #172033;
+  background-color: rgba(255, 255, 255, 0.90);
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+html[data-theme="light"] .field:focus {
+  background: #ffffff;
+  border-color: rgba(8, 145, 178, 0.55);
+}
+html[data-theme="light"] .field-error {
+  border-color: rgba(225, 29, 72, 0.45) !important;
+}
+
+html[data-theme="light"] .field::placeholder {
+  color: #94a3b8;
+}
+
+html[data-theme="light"] .result-core {
+  background: #ffffff;
+}
+
+html[data-theme="light"] .chart-surface {
+  background: rgba(255, 255, 255, 0.65);
+  --chart-grid: rgba(15,23,42,.09);
+  --chart-label: rgb(100 116 139);
+  --chart-point-fill: #ffffff;
+}
+
+html[data-theme="light"] .theme-option {
+  border-color: rgba(15, 23, 42, 0.10);
+  background: rgba(255, 255, 255, 0.70);
+}
+
+html[data-theme="light"] .theme-option:hover {
+  border-color: rgba(8, 145, 178, 0.35);
+  background: rgba(8, 145, 178, 0.05);
+}
+
+html[data-theme="light"] .theme-option-active {
+  border-color: rgba(8, 145, 178, 0.45);
+  background: rgba(8, 145, 178, 0.07);
+  box-shadow: 0 0 0 1px rgba(8, 145, 178, 0.06), 0 12px 35px rgba(15, 23, 42, 0.05);
+}
+
+html[data-theme="light"] .nav-active {
+  border-color: rgba(8, 145, 178, 0.30);
+  background: rgba(8, 145, 178, 0.07);
+}
+
+/* Common Tailwind text/border utilities used by the existing UI. */
+html[data-theme="light"] .text-white { color: #172033 !important; }
+html[data-theme="light"] .text-slate-200 { color: #334155 !important; }
+html[data-theme="light"] .text-slate-300 { color: #475569 !important; }
+html[data-theme="light"] .text-slate-400 { color: #64748b !important; }
+html[data-theme="light"] .text-slate-500 { color: #64748b !important; }
+html[data-theme="light"] .text-slate-600 { color: #94a3b8 !important; }
+html[data-theme="light"] .text-emerald-300 { color: #059669 !important; }
+html[data-theme="light"] .text-amber-300 { color: #d97706 !important; }
+html[data-theme="light"] .text-rose-300 { color: #e11d48 !important; }
+html[data-theme="light"] .text-violet-300 { color: #7c3aed !important; }
+html[data-theme="light"] .border-white\/5 { border-color: rgba(15, 23, 42, 0.06) !important; }
+html[data-theme="light"] .border-white\/10 { border-color: rgba(15, 23, 42, 0.10) !important; }
+html[data-theme="light"] .border-white\/15 { border-color: rgba(15, 23, 42, 0.15) !important; }
+html[data-theme="light"] .bg-white\/\[\.02\] { background-color: rgba(15, 23, 42, 0.025) !important; }
+html[data-theme="light"] .bg-white\/\[\.025\] { background-color: rgba(15, 23, 42, 0.025) !important; }
+html[data-theme="light"] .bg-white\/\[\.04\] { background-color: rgba(15, 23, 42, 0.04) !important; }
+html[data-theme="light"] .bg-white\/\[\.045\] { background-color: rgba(15, 23, 42, 0.045) !important; }
+html[data-theme="light"] .bg-white\/\[\.07\] { background-color: rgba(15, 23, 42, 0.07) !important; }
+html[data-theme="light"] .bg-black\/70 { background-color: rgba(15, 23, 42, 0.38) !important; }
+html[data-theme="light"] .bg-cyan-400\/10 { background-color: rgba(8, 145, 178, 0.08) !important; }
+
+/* Preserve readable controls and inputs on every screen in light mode. */
+html[data-theme="light"] button,
+html[data-theme="light"] input,
+html[data-theme="light"] select {
+  color-scheme: light;
+}
+
+
+/* Replace the few original fixed dark surfaces while preserving the rest of the UI. */
+html[data-theme="light"] [class*="bg-[#050b14]"],
+html[data-theme="light"] [class*="bg-[#091321]"],
+html[data-theme="light"] [class*="bg-[#0b1220]"],
+html[data-theme="light"] [class*="bg-[#080912]"] {
+  background: rgba(255, 255, 255, 0.90) !important;
+  color: #172033 !important;
+}
+
+html[data-theme="light"] [class*="bg-[#07111f]"] {
+  background: #ffffff !important;
+  color: #172033 !important;
+}
+
+html[data-theme="light"] [class*="bg-white/"] {
+  background-color: rgba(15, 23, 42, 0.035) !important;
+}
+
+html[data-theme="light"] [class*="bg-black/"] {
+  background-color: rgba(15, 23, 42, 0.35) !important;
+}
+
+/* Requested light-theme branding and selected-value visibility. */
+.brand-button {
+  color: #e8f0ff;
+}
+.brand-mark {
+  background: rgba(34, 211, 238, 0.10);
+  color: #67e8f9;
+}
+.brand-title {
+  color: #f8fafc;
+}
+.brand-subtitle {
+  color: #64748b;
+}
+
+.select-trigger-value {
+  color: rgb(100 116 139);
+}
+.select-trigger-value.has-value {
+  color: #e2e8f0;
+}
+.select-menu {
+  color: #e2e8f0;
+}
+.select-option-selected {
+  font-weight: 600;
+}
+
+html[data-theme="light"] .brand-button {
+  color: #172033;
+}
+html[data-theme="light"] .brand-mark {
+  background: rgba(8, 145, 178, 0.09);
+  color: #0891b2;
+  border: 1px solid rgba(8, 145, 178, 0.12);
+}
+html[data-theme="light"] .brand-title {
+  color: #172033 !important;
+}
+html[data-theme="light"] .brand-subtitle {
+  color: #64748b !important;
+}
+html[data-theme="light"] .select-trigger-value {
+  color: #94a3b8;
+}
+html[data-theme="light"] .select-trigger-value.has-value {
+  color: #172033;
+}
+html[data-theme="light"] .select-menu {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-color: rgba(8, 145, 178, 0.20);
+  color: #172033;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.14);
+}
+html[data-theme="light"] .select-option {
+  color: #475569 !important;
+}
+html[data-theme="light"] .select-option:hover {
+  background: rgba(15, 23, 42, 0.05) !important;
+  color: #172033 !important;
+}
+html[data-theme="light"] .select-option-selected {
+  background: rgba(8, 145, 178, 0.12) !important;
+  color: #0891b2 !important;
+}
+html[data-theme="light"] .theme-option-title {
+  color: #172033 !important;
+}
+html[data-theme="light"] .theme-option-icon {
+  color: #0891b2;
+  background: rgba(8, 145, 178, 0.08);
+}
+html[data-theme="light"] .theme-option-active .theme-option-icon {
+  color: #0891b2;
+}
+
+
+/* Login wordmark: plain bold branding in light mode, adaptive branding in dark mode. */
+.auth-brand-title { color:#f8fafc; font-size:1.05rem; line-height:1.1; font-weight:800; letter-spacing:-.02em; }
+.auth-brand-subtitle { margin-top:3px; color:#64748b; font-size:.72rem; line-height:1.1; font-weight:500; }
+.auth-brand-mark { background:rgba(34,211,238,.10); color:#67e8f9; border:1px solid rgba(34,211,238,.12); }
+html[data-theme="light"] .auth-brand-title { color:#172033 !important; }
+html[data-theme="light"] .auth-brand-subtitle { color:#64748b !important; }
+html[data-theme="light"] .auth-brand-mark { background:transparent; color:#0891b2; border-color:rgba(8,145,178,.14); }
+.theme-option-radio { border-color:rgba(148,163,184,.38); color:transparent; }
+.theme-option-radio-active { border-color:#0891b2; background:#0891b2; color:#fff; }
+html:not([data-theme="light"]) .theme-option-radio-active { border-color:#22d3ee; background:#22d3ee; color:#06111d; }
+
+/* Final branding and appearance fixes: keep the wordmark plain in light mode. */
+.brand-button,
+.brand-copy,
+.brand-title,
+.brand-subtitle {
+  background: transparent !important;
+}
+
+html[data-theme="light"] .brand-button,
+html[data-theme="light"] .brand-copy {
+  background: transparent !important;
+  color: #172033;
+}
+
+html[data-theme="light"] .brand-title {
+  color: #172033 !important;
+  font-weight: 800;
+}
+
+html[data-theme="light"] .brand-subtitle {
+  color: #64748b !important;
+}
+
+/* Dialog close control stays visible in both appearance modes. */
+.modal-close {
+  color: #e2e8f0 !important;
+}
+
+.modal-close svg {
+  opacity: 1 !important;
+  stroke-width: 2.4;
+}
+
+html[data-theme="light"] .modal-close {
+  color: #172033 !important;
+}
+
+/* Password-reset method cards */
+.reset-method {
+  display: flex;
+  min-height: 78px;
+  align-items: center;
+  gap: .75rem;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 1rem;
+  padding: .8rem .9rem;
+  text-align: left;
+  color: #94a3b8;
+  background: rgba(255,255,255,.025);
+  transition: border-color .2s ease, background .2s ease, transform .2s ease;
+}
+.reset-method:hover { border-color: rgba(34,211,238,.35); transform: translateY(-1px); }
+.reset-method-active { border-color: rgba(34,211,238,.55); background: rgba(34,211,238,.08); color: #e2e8f0; }
+.reset-method strong { display:block; color:#e2e8f0; font-size:.82rem; }
+.reset-method small { display:block; margin-top:.18rem; color:#64748b; font-size:.67rem; line-height:1.25; }
+html[data-theme="light"] .reset-method { border-color: rgba(15,23,42,.10); background: rgba(255,255,255,.72); color:#475569; }
+html[data-theme="light"] .reset-method-active { border-color: rgba(8,145,178,.45); background: rgba(8,145,178,.07); color:#0891b2; }
+html[data-theme="light"] .reset-method strong { color:#172033; }
+html[data-theme="light"] .reset-method small { color:#64748b; }
+
+/* Dashboard gauge/chart contrast: dark values stay unchanged; light mode gets readable tracks and points. */
+.dashboard-gauge-track { background: var(--dashboard-gauge-track); }
+.dashboard-chart-point { fill: var(--dashboard-chart-point-fill); stroke: var(--dashboard-chart-point-stroke); }
+:root { --dashboard-gauge-track: rgba(255,255,255,.07); --dashboard-chart-point-fill: #07111f; --dashboard-chart-point-stroke: #22d3ee; }
+html[data-theme="light"] { --dashboard-gauge-track: rgba(15,23,42,.10); --dashboard-chart-point-fill: #0891b2; --dashboard-chart-point-stroke: #ffffff; }
+
+
+.result-probability-track { background: rgba(255,255,255,.06); }
+html[data-theme="light"] .result-probability-track { background: rgba(15,23,42,.10); }
+html[data-theme="light"] .result-probability-track + div { min-width: 2px; }
+
+
+/* Google sign-in */
+.google-signin-wrap { display:flex; justify-content:center; min-height:44px; }
+.google-fallback-btn { width:100%; min-height:50px; display:flex; align-items:center; justify-content:center; gap:.7rem; border:1px solid rgba(148,163,184,.24); border-radius:1rem; background:rgba(255,255,255,.035); color:#e2e8f0; font-weight:600; font-size:1rem; transition:.2s ease; }
+.google-fallback-btn:hover { background:rgba(255,255,255,.08); transform:translateY(-1px); }
+.google-g { display:grid; place-items:center; width:24px; height:24px; border-radius:999px; background:#fff; overflow:hidden; flex:0 0 24px; }
+html[data-theme="light"] .google-fallback-btn { border-color:rgba(15,23,42,.12); background:rgba(255,255,255,.8); color:#172033; }
+html[data-theme="light"] .google-fallback-btn:hover { background:#fff; }
+
+/* Result probability bars stay clearly visible in light mode. */
+.result-probability-track { border:1px solid rgba(255,255,255,.08); min-height:12px; }
+.result-probability-fill { min-width:2px; box-shadow:0 0 10px rgba(34,211,238,.18); }
+.result-probability-value { color:#f8fafc; }
+html[data-theme="light"] .result-probability-track { background:#e2e8f0 !important; border-color:rgba(15,23,42,.12); box-shadow:inset 0 1px 2px rgba(15,23,42,.06); }
+html[data-theme="light"] .result-probability-value { color:#172033 !important; }
+html[data-theme="light"] .result-probability-fill { box-shadow:0 0 10px rgba(8,145,178,.20); }
+
+/* Explicit close glyph so modal close controls never render as an empty circle. */
+.modal-close-x { display:grid; place-items:center; width:100%; height:100%; font-size:24px; line-height:1; font-weight:400; }
+
+/* ── Responsive overrides ─────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .field {
+    min-height: 46px;
+    padding-left: 0.85rem !important;
+    padding-right: 0.85rem !important;
+    font-size: 0.8125rem;
+  }
+  .primary-btn,
+  .ghost-btn {
+    padding: 0.625rem 1rem;
+    font-size: 0.8125rem;
+  }
+  .auth-card {
+    max-width: 100%;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  .field {
+    min-height: 50px;
+  }
+}
