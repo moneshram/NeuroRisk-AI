@@ -19,7 +19,7 @@ from werkzeug.security import generate_password_hash
 from models import User, Prediction, PasswordReset, MailJob, PendingRegistration
 from schemas import validate_payload
 from auth import roles_required
-from ml.pipeline import predict
+from ml.pipeline import predict, RISK_THRESHOLD
 
 logger = logging.getLogger(__name__)
 
@@ -570,7 +570,7 @@ def create_app():
                 "id": record.id,
                 "prediction": record.prediction,
                 "probability": round(record.probability * 100, 2),
-                "risk_level": "High Risk" if record.probability >= .5 else "Low Risk",
+                "risk_level": "High Risk" if record.probability >= RISK_THRESHOLD else "Low Risk",
                 "created_at": record.created_at.isoformat() if record.created_at else None,
             }
             for record in records[-12:]
@@ -585,7 +585,7 @@ def create_app():
                 "created_at": user.created_at.isoformat() if user.created_at else None,
             },
             "prediction_count": len(records),
-            "high_risk_count": sum(1 for record in records if record.probability >= .5),
+            "high_risk_count": sum(1 for record in records if record.probability >= RISK_THRESHOLD),
             "latest_prediction": latest,
             "history": history,
         })
@@ -615,7 +615,7 @@ def create_app():
                 "prediction": record.prediction,
                 "probability": stroke_p,
                 "no_stroke_probability": round((1 - record.probability) * 100, 2),
-                "risk_level": "High Risk" if record.probability >= .5 else "Low Risk",
+                "risk_level": "High Risk" if record.probability >= RISK_THRESHOLD else "Low Risk",
                 "created_at": record.created_at.isoformat() if record.created_at else None,
                 "patient": payload,
             })
@@ -649,7 +649,7 @@ def create_app():
                 "prediction": record.prediction,
                 "probability": stroke_p,
                 "no_stroke_probability": round((1 - record.probability) * 100, 2),
-                "risk_level": "High Risk" if record.probability >= .5 else "Low Risk",
+                "risk_level": "High Risk" if record.probability >= RISK_THRESHOLD else "Low Risk",
                 "created_at": record.created_at.isoformat() if record.created_at else None,
                 "patient": payload,
             })
@@ -685,7 +685,7 @@ def create_app():
             "prediction": record.prediction,
             "probability": stroke_p,
             "no_stroke_probability": round((1 - record.probability) * 100, 2),
-            "risk_level": "High Risk" if record.probability >= .5 else "Low Risk",
+            "risk_level": "High Risk" if record.probability >= RISK_THRESHOLD else "Low Risk",
             "created_at": record.created_at.isoformat() if record.created_at else None,
             "patient": payload,
         }
@@ -807,7 +807,7 @@ def create_app():
         return jsonify({
             "users": User.query.filter_by(role="user").count(),
             "predictions": Prediction.query.count(),
-            "high_risk": Prediction.query.filter(Prediction.probability >= .5).count(),
+            "high_risk": Prediction.query.filter(Prediction.probability >= RISK_THRESHOLD).count(),
         })
 
     @app.get("/api/admin/users")
@@ -930,7 +930,7 @@ def create_app():
             app.logger.exception("Prediction failed: %s", exc)
             return jsonify({"error": "Prediction failed. Please try again."}), 500
 
-        risk = "High Risk" if probability >= .5 else "Low Risk"
+        risk = "High Risk" if probability >= RISK_THRESHOLD else "Low Risk"
         recommendations = build_recommendations(patient, probability)
 
         record = Prediction(
@@ -965,7 +965,7 @@ def serialize_prediction(record, include_payload=False):
         "user_email": record.user.email if record.user else "Unknown",
         "prediction": record.prediction,
         "probability": round(record.probability * 100, 2),
-        "risk_level": "High Risk" if record.probability >= .5 else "Low Risk",
+        "risk_level": "High Risk" if record.probability >= RISK_THRESHOLD else "Low Risk",
         "created_at": record.created_at.isoformat() if record.created_at else None,
     }
     if include_payload:
@@ -1278,7 +1278,7 @@ def build_recommendations(patient, probability):
         out.append("Avoid tobacco exposure and seek evidence-based cessation support if needed.")
     if not out:
         out.append("Continue routine preventive care, physical activity, and healthy lifestyle habits.")
-    if probability >= .5:
+    if probability >= RISK_THRESHOLD:
         out.insert(0, "This model estimates elevated risk; it is not a diagnosis. Seek professional medical evaluation.")
     return out
 
