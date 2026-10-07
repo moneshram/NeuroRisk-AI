@@ -1302,24 +1302,35 @@ def build_recommendations(patient, probability):
         out.insert(0, "This model estimates elevated risk; it is not a diagnosis. Seek professional medical evaluation.")
     return out
 
-try:
-    app = create_app()
-except Exception as exc:  # pragma: no cover — startup-failure safety net
-    # Any other startup failure (unreachable/wrong DATABASE_URL, bad env
-    # values, …) must also surface as a readable JSON 503 instead of an
-    # opaque FUNCTION_INVOCATION_FAILED. The full traceback goes to the
-    # server log only; callers get the exception message.
-    logger.exception("Backend failed to start")
-    _startup_error = str(exc) or exc.__class__.__name__
-    app = Flask(__name__)
-    CORS(app, resources={r"/api/*": {"origins": Config.FRONTEND_ORIGINS}})
+def _build_app():
+    """Build the WSGI app without ever letting startup errors crash import.
 
-    @app.route("/api", defaults={"path": ""},
-               methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
-    @app.route("/api/<path:path>",
-               methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
-    def startup_error_response(path):
-        return jsonify({"error": f"Backend failed to start: {_startup_error}"}), 503
+    An exception at module import surfaces on Vercel only as an opaque
+    FUNCTION_INVOCATION_FAILED (which the frontend reports to users as
+    "Unable to reach the server"). Callers therefore get a readable JSON
+    503; the full traceback is logged server-side. The module-level
+    ``app = _build_app()`` assignment below must stay at column 0 — the
+    Vercel Python builder locates the WSGI entrypoint by top-level
+    ``app = ...`` and a nested/indented assignment breaks the build.
+    """
+    try:
+        return create_app()
+    except Exception as exc:  # pragma: no cover — startup-failure safety net
+        logger.exception("Backend failed to start")
+        reason = str(exc) or exc.__class__.__name__
+        broken = Flask(__name__)
+        CORS(broken, resources={r"/api/*": {"origins": Config.FRONTEND_ORIGINS}})
+
+        @broken.route("/api", defaults={"path": ""},
+                      methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+        @broken.route("/api/<path:path>",
+                      methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+        def startup_error_response(path):
+            return jsonify({"error": f"Backend failed to start: {reason}"}), 503
+
+        return broken
+
+app = _build_app()
 
 if __name__ == "__main__":
     app.run(debug=True)
