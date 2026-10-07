@@ -26,6 +26,26 @@ logger = logging.getLogger(__name__)
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # Startup guard: when Config carries a CONFIG_ERROR (e.g. DATABASE_URL is
+    # not set on Vercel), answer every /api request with a readable JSON 503
+    # instead of crashing the import — a crash shows up on Vercel only as
+    # FUNCTION_INVOCATION_FAILED, which the browser reports to users as
+    # "Unable to reach the server" and hides the real fix.
+    config_error = app.config.get("CONFIG_ERROR")
+    if config_error:
+        CORS(app, resources={r"/api/*": {"origins": app.config["FRONTEND_ORIGINS"]}})
+        logger.error("Backend start aborted — configuration error: %s", config_error)
+
+        @app.route("/api", defaults={"path": ""},
+                   methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+        @app.route("/api/<path:path>",
+                   methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+        def config_error_response(path):
+            return jsonify({"error": config_error}), 503
+
+        return app
+
     db.init_app(app)
     jwt.init_app(app)
     CORS(app, resources={r"/api/*": {"origins": app.config["FRONTEND_ORIGINS"]}})
@@ -1282,7 +1302,24 @@ def build_recommendations(patient, probability):
         out.insert(0, "This model estimates elevated risk; it is not a diagnosis. Seek professional medical evaluation.")
     return out
 
-app = create_app()
+try:
+    app = create_app()
+except Exception as exc:  # pragma: no cover — startup-failure safety net
+    # Any other startup failure (unreachable/wrong DATABASE_URL, bad env
+    # values, …) must also surface as a readable JSON 503 instead of an
+    # opaque FUNCTION_INVOCATION_FAILED. The full traceback goes to the
+    # server log only; callers get the exception message.
+    logger.exception("Backend failed to start")
+    _startup_error = str(exc) or exc.__class__.__name__
+    app = Flask(__name__)
+    CORS(app, resources={r"/api/*": {"origins": Config.FRONTEND_ORIGINS}})
+
+    @app.route("/api", defaults={"path": ""},
+               methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+    @app.route("/api/<path:path>",
+               methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+    def startup_error_response(path):
+        return jsonify({"error": f"Backend failed to start: {_startup_error}"}), 503
 
 if __name__ == "__main__":
     app.run(debug=True)

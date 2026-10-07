@@ -56,13 +56,21 @@ class Config:
     # For local development, SQLite is used automatically when DATABASE_URL is
     # not set.
     _env_db = _env("DATABASE_URL")
+    # Never raise at import time on Vercel: an exception while loading the
+    # module makes Vercel answer every request (including CORS preflights)
+    # with an opaque "FUNCTION_INVOCATION_FAILED" 500, which the frontend
+    # surfaces to users as "Unable to reach the server" — hiding the actual
+    # fix. Instead record the problem; create_app() short-circuits on this
+    # flag and serves the message as a readable JSON 503.
+    CONFIG_ERROR = None
     if IS_VERCEL and not _env_db:
-        raise RuntimeError(
+        CONFIG_ERROR = (
             "DATABASE_URL environment variable is required on Vercel. "
             "Set it to a persistent PostgreSQL connection string "
             "(e.g. from Neon, Supabase, or Railway) in the Vercel dashboard "
-            "under Settings → Environment Variables."
+            "under Settings → Environment Variables, then redeploy."
         )
+        _env_db = "sqlite:///:memory:"  # inert placeholder — never queried
     _default_db = (
         f"sqlite:///{BASE_DIR / 'instance' / 'stroke.db'}"
         if not IS_VERCEL
