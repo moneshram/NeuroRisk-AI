@@ -13,5 +13,9 @@ reportlab==5.0.0
 
 google-auth==2.40.3
 
-# Required for PostgreSQL database when DATABASE_URL starts with postgres://
+# PostgreSQL drivers — both are needed because the DATABASE_URL dialect
+# decides which one SQLAlchemy imports at runtime:
+#   postgresql:// or postgresql+psycopg2://  -> module "psycopg2"
+#   postgresql+psycopg:// (the Vercel URL)   -> module "psycopg" (v3)
 psycopg2-binary==2.9.10
+psycopg[binary]==3.2.13
