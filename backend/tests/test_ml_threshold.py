@@ -1,13 +1,15 @@
 """Regression tests for the ML risk-classification threshold.
 
-The model is trained on a severely imbalanced dataset (about 94% LOW / 6%
-HIGH), and its predicted probabilities are systematically low (median ~0.11).
-A fixed 0.5 threshold caused almost every input to be classified LOW RISK
-(recall on the HIGH class was only 0.34). The fix centralizes
-RISK_THRESHOLD = 0.25 in ml/pipeline.py and uses it everywhere in app.py.
+The production model is trained on the real archive/full_data.csv dataset
+(4981 rows, 4.98% positive = 19.1:1 imbalance) by train_stroke_model.py.
+Because the base rate is ~5%, a fixed 0.5 cutoff classifies EVERY input as
+LOW RISK - on the held-out test set such a model detects 0 of 50 positive
+cases. The threshold is therefore derived from training out-of-fold
+predictions (max balanced accuracy / Youden's J) and centralized as
+RISK_THRESHOLD = 0.05 in ml/pipeline.py; app.py imports that single value.
 
-These tests pin the corrected behavior so the "always LOW RISK" bug cannot
-silently return.
+These tests pin the behavior so the "always LOW RISK" bug cannot silently
+return, and guard the Low/High risk mapping for the two reference cases.
 """
 import os
 
@@ -38,15 +40,15 @@ def _auth_headers(client):
     return {"Authorization": f"Bearer {token}"}
 
 
-# 80yo + hypertension + former smoker, glucose 180. Scores ~0.41 with the
-# current model: below 0.5 (was wrongly "Low Risk") but above 0.25.
+# 80yo + hypertension + former smoker, glucose 180. Scores ~0.31 with the
+# current model: well above RISK_THRESHOLD=0.05, far below 0.5.
 HIGH_RISK_CASE = {
     "age": 80, "gender": "Male", "hypertension": 1, "heart_disease": 0,
     "ever_married": "Yes", "work_type": "Govt_job", "residence_type": "Rural",
     "avg_glucose_level": 180, "bmi": 28, "smoking_status": "formerly smoked",
 }
 
-# 25yo healthy non-smoker. Scores ~0.03.
+# 25yo healthy non-smoker. Scores ~0.004.
 LOW_RISK_CASE = {
     "age": 25, "gender": "Female", "hypertension": 0, "heart_disease": 0,
     "ever_married": "No", "work_type": "Private", "residence_type": "Urban",
@@ -55,7 +57,9 @@ LOW_RISK_CASE = {
 
 
 def test_risk_threshold_is_centralized_and_recall_oriented():
-    assert RISK_THRESHOLD == 0.25
+    # Derived from OOF balanced-accuracy optimum on the training split
+    # (see ml/pipeline.py). Must stay centralized - app.py imports it.
+    assert RISK_THRESHOLD == 0.05
 
 
 def test_high_risk_case_is_flagged_high_risk():

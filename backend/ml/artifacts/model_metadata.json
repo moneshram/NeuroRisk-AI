@@ -1,0 +1,88 @@
+{
+  "model_file": "stroke_pipeline.joblib",
+  "created_utc": "2026-10-06T10:18:57.325188+00:00",
+  "selected_model": "LogisticRegression + none",
+  "model_type": "LogisticRegression",
+  "risk_threshold": 0.05,
+  "features": [
+    "age",
+    "gender",
+    "hypertension",
+    "heart_disease",
+    "ever_married",
+    "work_type",
+    "residence_type",
+    "avg_glucose_level",
+    "bmi",
+    "smoking_status"
+  ],
+  "numeric_features": [
+    "age",
+    "hypertension",
+    "heart_disease",
+    "avg_glucose_level",
+    "bmi"
+  ],
+  "categorical_features": [
+    "gender",
+    "ever_married",
+    "work_type",
+    "residence_type",
+    "smoking_status"
+  ],
+  "target": "stroke",
+  "target_mapping": {
+    "0": "No Stroke Risk / Low Risk",
+    "1": "Stroke Risk / High Risk"
+  },
+  "positive_class_index": 1,
+  "probability_semantics": "predict_proba[:,1] = P(stroke=1) = high-risk probability",
+  "column_rename": {
+    "Residence_type": "residence_type"
+  },
+  "dataset": {
+    "path": "/home/monesh/Desktop/brain stroke/archive/full_data.csv",
+    "sha256": "c6580041b792045912ab10350f4a8f0e0effd8df4e7a0271b11780356c9aa9d7",
+    "rows": 4981,
+    "target_counts": {
+      "0": 4733,
+      "1": 248
+    },
+    "target_percent": {
+      "0": 95.02,
+      "1": 4.98
+    }
+  },
+  "split": {
+    "test_size": 0.2,
+    "random_state": 42,
+    "stratified": true,
+    "n_train": 3984,
+    "n_test": 997,
+    "cv": "StratifiedKFold(5, shuffle=True, random_state=42)"
+  },
+  "test_metrics": {
+    "accuracy": 0.7482447342026078,
+    "precision": 0.14736842105263157,
+    "recall": 0.84,
+    "f1": 0.2507462686567164,
+    "f2": 0.4329896907216495,
+    "roc_auc": 0.8458289334741287,
+    "specificity": 0.7434002111932418,
+    "confusion_matrix": [
+      [
+        704,
+        243
+      ],
+      [
+        8,
+        42
+      ]
+    ],
+    "true_negatives": 704,
+    "false_positives": 243,
+    "false_negatives": 8,
+    "true_positives": 42
+  },
+  "disclaimer": "Preliminary machine-learning risk classification for decision support. Not a medical diagnosis, not clinically validated, not a replacement for a clinician's assessment."
+}

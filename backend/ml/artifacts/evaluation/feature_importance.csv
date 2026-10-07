@@ -1,0 +1,20 @@
+,value
+num__age,1.5815949910894094
+cat__work_type_children,0.6454346931632541
+cat__work_type_Govt_job,-0.31733718672011124
+cat__work_type_Self-employed,-0.29183932503967636
+num__avg_glucose_level,0.21091791355100353
+cat__smoking_status_never smoked,-0.19690623080436354
+cat__smoking_status_smokes,0.16210770696488594
+num__hypertension,0.1609785288910964
+cat__ever_married_No,0.08132021139564402
+num__bmi,0.08064221811313474
+cat__smoking_status_formerly smoked,0.0718899395443115
+cat__ever_married_Yes,-0.07047396710518547
+num__heart_disease,0.046939876774815606
+cat__smoking_status_Unknown,-0.026245171414368555
+cat__work_type_Private,-0.025411937113008376
+cat__gender_Male,0.018727878207566415
+cat__residence_type_Urban,0.014382829011713491
+cat__gender_Female,-0.007881633917094594
+cat__residence_type_Rural,-0.0035365847212415966
