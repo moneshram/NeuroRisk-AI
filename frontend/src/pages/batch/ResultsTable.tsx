@@ -2,10 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ChevronLeft, ChevronRight, ChevronsUpDown, Table2 } from "lucide-react";
 import type { BatchRow } from "../../lib/batchApi";
+import type { RiskFilter } from "./SummaryCards";
 import { prefersReducedMotion } from "./motion";
 
 type SortKey = keyof BatchRow;
 type SortDir = "asc" | "desc";
+
+export type SortRequest = { key: SortKey; dir: SortDir; nonce: number };
 
 type Column = {
   key: SortKey;
@@ -71,7 +74,17 @@ function compare(a: BatchRow, b: BatchRow, key: SortKey, dir: SortDir): number {
   return dir === "asc" ? result : -result;
 }
 
-export function ResultsTable({ rows }: { rows: BatchRow[] }) {
+export function ResultsTable({
+  rows,
+  riskFilter = "all",
+  onClearFilter,
+  sortRequest,
+}: {
+  rows: BatchRow[];
+  riskFilter?: RiskFilter;
+  onClearFilter?: () => void;
+  sortRequest?: SortRequest | null;
+}) {
   const bodyRef = useRef<HTMLTableSectionElement>(null);
   const [sortKey, setSortKey] = useState<SortKey>("stroke_probability");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -80,11 +93,30 @@ export function ResultsTable({ rows }: { rows: BatchRow[] }) {
 
   const entries = useMemo(() => rows.map((row, id) => ({ row, id })), [rows]);
 
+  /* Risk-level filter (from the summary cards) applied before sorting. */
+  const filtered = useMemo(
+    () => (riskFilter === "all" ? entries : entries.filter((entry) => entry.row.risk_level === riskFilter)),
+    [entries, riskFilter],
+  );
+
   const sorted = useMemo(() => {
-    const copy = entries.slice();
+    const copy = filtered.slice();
     copy.sort((a, b) => compare(a.row, b.row, sortKey, sortDir) || a.id - b.id);
     return copy;
-  }, [entries, sortKey, sortDir]);
+  }, [filtered, sortKey, sortDir]);
+
+  /* External sort request (Average probability card). */
+  useEffect(() => {
+    if (!sortRequest) return;
+    setSortKey(sortRequest.key);
+    setSortDir(sortRequest.dir);
+    setPage(0);
+  }, [sortRequest]);
+
+  /* Changing the filter returns the table to the first page. */
+  useEffect(() => {
+    setPage(0);
+  }, [riskFilter]);
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize));
   const safePage = Math.min(page, pageCount - 1);
@@ -118,7 +150,7 @@ export function ResultsTable({ rows }: { rows: BatchRow[] }) {
       });
     }, body);
     return () => ctx.revert();
-  }, [safePage, sortKey, sortDir, pageSize, rows]);
+  }, [safePage, sortKey, sortDir, pageSize, rows, riskFilter]);
 
   const from = sorted.length ? start + 1 : 0;
   const to = Math.min(start + pageSize, sorted.length);
@@ -134,6 +166,22 @@ export function ResultsTable({ rows }: { rows: BatchRow[] }) {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          {riskFilter !== "all" && (
+            <button
+              type="button"
+              onClick={onClearFilter}
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
+                riskFilter === "High Risk"
+                  ? "border-rose-400/40 bg-rose-400/10 text-rose-300 hover:bg-rose-400/20"
+                  : "border-emerald-400/40 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20"
+              }`}
+              title="Clear the risk filter"
+            >
+              Showing: {riskFilter} only — {sorted.length.toLocaleString()} rows
+              <span aria-hidden="true">×</span>
+              <span className="sr-only">Clear filter</span>
+            </button>
+          )}
           <span className="rounded-full border border-white/10 bg-white/[.03] px-3 py-1 text-xs text-slate-500">
             {sorted.length.toLocaleString()} rows
           </span>

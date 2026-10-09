@@ -13,9 +13,9 @@ import {
   type BatchSource,
 } from "../lib/batchApi";
 import { UploadPanel } from "./batch/UploadPanel";
-import { SummaryCards } from "./batch/SummaryCards";
+import { SummaryCards, type RiskFilter } from "./batch/SummaryCards";
 import { BatchCharts } from "./batch/BatchCharts";
-import { ResultsTable } from "./batch/ResultsTable";
+import { ResultsTable, type SortRequest } from "./batch/ResultsTable";
 import { buildResultsCsv, downloadTextFile } from "./batch/csv";
 import { bindButtonMotion, prefersReducedMotion } from "./batch/motion";
 
@@ -24,6 +24,9 @@ export default function Batch() {
   const [data, setData] = useState<BatchResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [riskFilter, setRiskFilter] = useState<RiskFilter>("all");
+  const [sortRequest, setSortRequest] = useState<SortRequest | null>(null);
+  const [sourceLabel, setSourceLabel] = useState("");
 
   /* Page entrance + delegated button micro-interactions (transform/opacity only). */
   useEffect(() => {
@@ -73,6 +76,8 @@ export default function Batch() {
     try {
       const result = await run();
       setData(result);
+      setRiskFilter("all");
+      setSortRequest(null);
       const total = result.summary.total;
       toast.success(
         `Batch complete — ${total.toLocaleString()} row${total === 1 ? "" : "s"} scored.`,
@@ -88,8 +93,31 @@ export default function Batch() {
     }
   }
 
-  const handleFile = (file: File) => startBatch(() => runBatchFromFile(file));
-  const handleSource = (source: BatchSource) => startBatch(() => runBatchFromSource(source));
+  const handleFile = (file: File) => {
+    setSourceLabel(file.name);
+    return startBatch(() => runBatchFromFile(file));
+  };
+  const handleSource = (source: BatchSource) => {
+    setSourceLabel(source === "full" ? "full_data.csv" : "full_filled_stroke_data.csv");
+    return startBatch(() => runBatchFromSource(source));
+  };
+
+  function scrollToResults() {
+    document.getElementById("batch-results")?.scrollIntoView({
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      block: "start",
+    });
+  }
+
+  function handleFilterChange(next: RiskFilter) {
+    setRiskFilter(next);
+    if (next !== "all") scrollToResults();
+  }
+
+  function handleAverageClick() {
+    setSortRequest({ key: "stroke_probability", dir: "desc", nonce: Date.now() });
+    scrollToResults();
+  }
 
   function downloadCsv() {
     if (!data) return;
@@ -112,6 +140,9 @@ export default function Batch() {
 
   function reset() {
     setData(null);
+    setRiskFilter("all");
+    setSortRequest(null);
+    setSourceLabel("");
     window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });
   }
 
@@ -180,14 +211,26 @@ export default function Batch() {
             </div>
           ) : (
             <>
-              <SummaryCards summary={data.summary} />
+              <SummaryCards
+                summary={data.summary}
+                results={data.results}
+                sourceLabel={sourceLabel}
+                riskFilter={riskFilter}
+                onFilter={handleFilterChange}
+                onAverage={handleAverageClick}
+              />
 
               <div className="mt-5">
                 <BatchCharts data={data.chart_data} />
               </div>
 
-              <div className="mt-5">
-                <ResultsTable rows={data.results} />
+              <div className="mt-5" id="batch-results">
+                <ResultsTable
+                  rows={data.results}
+                  riskFilter={riskFilter}
+                  onClearFilter={() => setRiskFilter("all")}
+                  sortRequest={sortRequest}
+                />
               </div>
 
               {/* Disclaimer — wording reused verbatim from Results.tsx / Assessment.tsx */}
