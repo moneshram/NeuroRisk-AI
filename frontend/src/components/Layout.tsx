@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Activity, BarChart3, BrainCircuit, LogOut, Settings, ShieldCheck } from "lucide-react";
+import { Activity, BarChart3, BrainCircuit, Layers, LogOut, Settings, ShieldCheck } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getUser, logout } from "../lib/api";
 
@@ -61,6 +61,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => navigate("/admin/settings")} className={`ghost-btn px-2.5 py-1.5 text-xs sm:px-3 sm:py-2 ${location.pathname.startsWith("/admin/settings") ? "nav-active" : ""}`} aria-label="Open administrator settings">
                   <Settings size={15} /> <span className="hidden sm:inline">Settings</span>
+                </motion.button>
+                <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => navigate("/batch")} className={`ghost-btn px-2.5 py-1.5 text-xs sm:px-3 sm:py-2 ${location.pathname === "/batch" ? "nav-active" : ""}`}>
+                  <Layers size={15} /> <span className="hidden sm:inline">Batch Analysis</span>
                 </motion.button>
               </>
             )}

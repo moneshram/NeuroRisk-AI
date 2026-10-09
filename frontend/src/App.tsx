@@ -18,6 +18,7 @@ import AdminEmailSettings from "./pages/AdminEmailSettings";
 import AdminPasswordSettings from "./pages/AdminPasswordSettings";
 import Results from "./pages/Results";
 import Admin from "./pages/Admin";
+import Batch from "./pages/Batch";
 import { initializeTheme } from "./lib/theme";
 
 export default function App() {
@@ -44,6 +45,7 @@ export default function App() {
       </Route>
       <Route element={<ProtectedRoute role="admin" />}>
         <Route path="/admin" element={<Admin />} />
+        <Route path="/batch" element={<Batch />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
         <Route path="/admin/settings/email" element={<AdminEmailSettings />} />
         <Route path="/admin/settings/password" element={<AdminPasswordSettings />} />

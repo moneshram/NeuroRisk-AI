@@ -20,6 +20,7 @@ from models import User, Prediction, PasswordReset, MailJob, PendingRegistration
 from schemas import validate_payload
 from auth import roles_required
 from ml.pipeline import predict, RISK_THRESHOLD
+from batch import batch_bp
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,7 @@ def create_app():
     if not os.getenv("VERCEL"):
         start_mail_dispatcher(app)
 
+    app.register_blueprint(batch_bp)
     @app.get("/api/health")
     def health():
         return jsonify({"status": "ok"})
