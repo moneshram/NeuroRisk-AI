@@ -8,9 +8,7 @@ import { Screen } from "../components/Screen";
 import {
   downloadBatchReport,
   runBatchFromFile,
-  runBatchFromSource,
   type BatchResponse,
-  type BatchSource,
 } from "../lib/batchApi";
 import { UploadPanel } from "./batch/UploadPanel";
 import { SummaryCards, type RiskFilter } from "./batch/SummaryCards";
@@ -96,10 +94,6 @@ export default function Batch() {
   const handleFile = (file: File) => {
     setSourceLabel(file.name);
     return startBatch(() => runBatchFromFile(file));
-  };
-  const handleSource = (source: BatchSource) => {
-    setSourceLabel(source === "full" ? "full_data.csv" : "full_filled_stroke_data.csv");
-    return startBatch(() => runBatchFromSource(source));
   };
 
   function scrollToResults() {
@@ -207,7 +201,7 @@ export default function Batch() {
 
           {!data ? (
             <div data-entrance>
-              <UploadPanel busy={busy} onFile={handleFile} onSource={handleSource} />
+              <UploadPanel busy={busy} onFile={handleFile} />
             </div>
           ) : (
             <>

@@ -1,20 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import toast from "react-hot-toast";
-import { Database, FileText, Loader2, UploadCloud } from "lucide-react";
-import { MAX_UPLOAD_BYTES, type BatchSource } from "../../lib/batchApi";
+import { FileText, Loader2, UploadCloud } from "lucide-react";
+import { MAX_UPLOAD_BYTES } from "../../lib/batchApi";
 import { CSV_TEMPLATE, downloadTextFile } from "./csv";
 import { prefersReducedMotion } from "./motion";
 
 type UploadPanelProps = {
   busy: boolean;
   onFile: (file: File) => void;
-  onSource: (source: BatchSource) => void;
 };
 
 type ZoneVisual = "idle" | "hover" | "drag";
 
-export function UploadPanel({ busy, onFile, onSource }: UploadPanelProps) {
+export function UploadPanel({ busy, onFile }: UploadPanelProps) {
   const zoneRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -168,46 +167,83 @@ export function UploadPanel({ busy, onFile, onSource }: UploadPanelProps) {
         </div>
       </section>
 
-      {/* Option B — bundled datasets */}
+      {/* Model prediction overview */}
       <section className="glass rounded-[2rem] p-5 sm:p-7">
-        <p className="text-xs uppercase tracking-[.25em] text-violet-300">Option B — sample data</p>
-        <h2 className="mt-1 text-xl font-semibold">Use a bundled dataset</h2>
+        <p className="text-xs uppercase tracking-[.25em] text-violet-300">
+          Model prediction overview
+        </p>
+        <h2 className="mt-1 text-xl font-semibold">Logistic Regression · 5% threshold</h2>
         <p className="mt-1 text-sm leading-6 text-slate-500">
-          Score the datasets already stored on the server — no upload required.
+          Each uploaded row is scored against the trained stroke-risk model, then labelled High or
+          Low risk.
         </p>
 
-        <div className="mt-5 space-y-3">
-          <button
-            type="button"
-            onClick={() => onSource("full")}
-            disabled={busy}
-            className="ghost-btn w-full justify-start px-4 py-4 text-left disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Database size={16} className="shrink-0 text-cyan-300" />
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold">Use full_data.csv (≈ 4981 rows)</span>
-              <span className="block text-xs font-normal text-slate-500">
-                source = full · complete historical dataset
-              </span>
-            </span>
-          </button>
+        {/* Held-out test metrics (ml/artifacts/model_metadata.json) */}
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          {[
+            { label: "ROC-AUC", value: "0.846", cls: "text-cyan-300" },
+            { label: "Accuracy", value: "74.8%", cls: "text-violet-300" },
+            { label: "Recall", value: "84%", cls: "text-emerald-300" },
+            { label: "Threshold", value: "≥ 5%", cls: "text-rose-300" },
+          ].map((m) => (
+            <div
+              key={m.label}
+              className="rounded-2xl border border-white/10 bg-white/[.03] px-4 py-3"
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-slate-500">
+                {m.label}
+              </p>
+              <p className={`mt-1 text-xl font-bold tabular-nums ${m.cls}`}>{m.value}</p>
+            </div>
+          ))}
+        </div>
 
-          <button
-            type="button"
-            onClick={() => onSource("filled")}
-            disabled={busy}
-            className="ghost-btn w-full justify-start px-4 py-4 text-left disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Database size={16} className="shrink-0 text-violet-300" />
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold">
-                Use full_filled_stroke_data (≈ 201 rows)
-              </span>
-              <span className="block text-xs font-normal text-slate-500">
-                source = filled · cleaned, gap-free subset
-              </span>
-            </span>
-          </button>
+        <div className="mt-5 space-y-4">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-slate-500">
+              Inputs — 10 features
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {[
+                "age",
+                "gender",
+                "hypertension",
+                "heart disease",
+                "ever married",
+                "work type",
+                "residence",
+                "avg glucose",
+                "bmi",
+                "smoking status",
+              ].map((f) => (
+                <span
+                  key={f}
+                  className="rounded-full border border-white/10 bg-white/[.03] px-2.5 py-1 text-[11px] text-slate-400"
+                >
+                  {f}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-slate-500">
+              Output
+            </p>
+            <p className="mt-1 text-xs leading-5 text-slate-400">
+              stroke probability (%) → prediction 0/1 →{" "}
+              <span className="text-rose-300">High Risk if ≥ 5%</span>, else Low Risk.
+            </p>
+          </div>
+
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-slate-500">
+              Trained
+            </p>
+            <p className="mt-1 text-xs leading-5 text-slate-400">
+              4,981 rows (4.98% positive) · stratified 80/20 split · retrained 2026-10-06.
+            </p>
+          </div>
         </div>
 
         <div
@@ -223,7 +259,7 @@ export function UploadPanel({ busy, onFile, onSource }: UploadPanelProps) {
           ) : (
             <>
               <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400/70" aria-hidden="true" />
-              <span>Ready — pick a file or a bundled dataset to begin.</span>
+              <span>Ready — choose a CSV to begin.</span>
             </>
           )}
         </div>
