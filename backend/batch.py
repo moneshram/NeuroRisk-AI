@@ -139,6 +139,26 @@ def _resolve_frame():
     return _read_source(source)
 
 
+def _source_label():
+    """Human-readable data-source label for the PDF's 'Data Source' row.
+
+    Mirrors _resolve_frame's precedence: an uploaded file wins, otherwise
+    the bundled source parameter. Returns None when neither is present.
+    """
+    upload = request.files.get("file")
+    if upload is not None and (upload.filename or "").strip():
+        return f"Uploaded CSV: {upload.filename.strip()}"
+
+    source = request.values.get("source")
+    if source is None:
+        payload = request.get_json(silent=True)
+        if isinstance(payload, dict):
+            source = payload.get("source")
+    if source is not None and str(source).strip():
+        return f"Bundled dataset ({str(source).strip().lower()})"
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Frame validation / preparation
 # ---------------------------------------------------------------------------
@@ -320,7 +340,13 @@ def batch_predict():
         log.exception("Batch prediction failed: %s", exc)
         return jsonify({"error": "Batch prediction failed. Please try again."}), 500
 
-    return jsonify(_build_payload(prepared, probabilities))
+    payload = _build_payload(prepared, probabilities)
+    # Carried into the PDF export as the "Data Source" row (frontend forwards
+    # the whole response verbatim to /batch/report).
+    source_label = _source_label()
+    if source_label:
+        payload["source"] = source_label
+    return jsonify(payload)
 
 
 @batch_bp.post("/batch/report")
@@ -329,9 +355,10 @@ def batch_report():
     """Stateless PDF export of an already-computed batch payload.
 
     Contract: JSON body must contain ``summary`` (object) and ``results``
-    (array); ``chart_data`` and ``source`` are optional. The PDF shows the
-    summary, the chart aggregates and the TOP 50 rows by ``stroke_probability``
-    (see batch_report.REPORT_ROW_CAP).
+    (array); ``chart_data`` and ``source`` are optional. ``source`` (a label
+    like "Uploaded CSV: rows.csv", set by /batch) renders as the PDF's
+    "Data Source" row. The PDF shows the summary, the chart aggregates and
+    the TOP 50 rows by ``stroke_probability`` (see batch_report.REPORT_ROW_CAP).
     """
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
@@ -348,7 +375,8 @@ def batch_report():
 
     try:
         from batch_report import generate_batch_report  # local import keeps startup light
-        buffer = generate_batch_report(body)
+        source_label = body.get("source") or body.get("source_label")
+        buffer = generate_batch_report(body, source_label=source_label)
     except Exception as exc:
         log.exception("Batch report generation failed: %s", exc)
         return jsonify({"error": "Batch report generation failed. Please try again."}), 500

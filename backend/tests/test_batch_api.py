@@ -97,7 +97,13 @@ def _rows_to_csv(rows, residence_header="residence_type"):
 
 def _assert_payload_shape(payload, expected_total):
     """Schema + count consistency shared by every happy-path test."""
-    assert set(payload) == {"summary", "chart_data", "results"}
+    # "source" is an optional human-readable label (set when the input came
+    # from an uploaded file or a bundled source parameter) that the PDF
+    # export renders as its "Data Source" row.
+    assert {"summary", "chart_data", "results"} <= set(payload) <= {
+        "summary", "chart_data", "results", "source"}
+    if "source" in payload:
+        assert isinstance(payload["source"], str) and payload["source"]
 
     summary = payload["summary"]
     assert set(summary) == {"total", "high_risk", "low_risk", "avg_probability", "max_probability"}
@@ -206,6 +212,8 @@ def test_csv_upload_happy_path():
     _assert_payload_shape(payload, expected_total=2)
     assert "Residence_type" not in payload["results"][0]
     assert payload["results"][0]["residence_type"] in ("Urban", "Rural")
+    # Uploaded-file label carried into the PDF's "Data Source" row
+    assert payload.get("source") == "Uploaded CSV: tiny.csv"
     assert payload["summary"]["high_risk"] == 1
     assert payload["results"][0]["risk_level"] == "High Risk"
     assert payload["results"][1]["risk_level"] == "Low Risk"
