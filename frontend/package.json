@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-three/fiber": "^8.18.0",
+    "@types/three": "^0.186.0",
     "framer-motion": "^12.23.12",
     "gsap": "^3.15.0",
     "lucide-react": "^0.468.0",
@@ -17,7 +19,8 @@
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.6.0",
     "react-router-dom": "^7.7.1",
-    "recharts": "^3.10.1"
+    "recharts": "^3.10.1",
+    "three": "^0.186.1"
   },
   "devDependencies": {
     "@types/react": "^18.3.18",

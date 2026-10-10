@@ -4,13 +4,12 @@ Style mirrors the existing test modules (tests/test_ml_threshold.py): pin the
 test environment at import time, build a fresh app per test, log in for JWTs.
 
 Covered:
-* source=full / source=filled happy paths (schema shape + count consistency)
 * CSV upload happy path (in-memory file, exercises the Residence_type rename)
 * missing required columns -> 400 listing them
 * non-numeric value -> 400 naming the column and the offending row
 * non-admin user -> 403, unauthenticated -> 401
 * >10 000 rows -> 413 (row-count guard)
-* invalid source / non-.csv upload -> 400
+* missing file / non-.csv upload -> 400
 * batch values identical to the single-prediction route for the same input
 * stateless PDF report endpoint (200 application/pdf, 400 on bad payload)
 """
@@ -163,34 +162,21 @@ def _assert_payload_shape(payload, expected_total):
         assert 0 <= row["stroke_probability"] <= 100
 
 
-def test_source_full_happy_path():
+def test_csv_upload_many_rows_happy_path():
+    """Larger synthetic upload (100 rows) exercises schema + count consistency."""
     app = _make_app()
     client = app.test_client()
     headers = _admin_headers(client)
 
-    resp = client.post("/api/predict/batch?source=full", headers=headers)
+    rows = [HIGH_RISK_ROW if i % 3 == 0 else LOW_RISK_ROW for i in range(100)]
+    resp = _upload(client, headers, _rows_to_csv(rows), filename="synthetic.csv")
     assert resp.status_code == 200
     payload = resp.get_json()
 
-    # backend/ml/samples/full_data.csv: 4981 rows, `stroke` label dropped.
-    _assert_payload_shape(payload, expected_total=4981)
+    _assert_payload_shape(payload, expected_total=100)
     # Hypertension axis always carries both groups (0 and 1).
     labels = {entry["label"] for entry in payload["chart_data"]["risk_by_hypertension"]}
     assert labels == {"0", "1"}
-
-
-def test_source_filled_happy_path():
-    app = _make_app()
-    client = app.test_client()
-    headers = _admin_headers(client)
-
-    resp = client.post("/api/predict/batch", headers=headers, json={"source": "filled"})
-    assert resp.status_code == 200
-    payload = resp.get_json()
-
-    # backend/ml/samples/full_filled_stroke_data.csv: 201 rows.
-    _assert_payload_shape(payload, expected_total=201)
-    assert payload["summary"]["high_risk"] + payload["summary"]["low_risk"] == 201
 
 
 def test_csv_upload_happy_path():
@@ -281,18 +267,20 @@ def test_oversize_row_count_rejected():
     assert "10000" in resp.get_json()["error"]
 
 
-def test_invalid_source_rejected():
+def test_missing_file_rejected():
     app = _make_app()
     client = app.test_client()
     headers = _admin_headers(client)
 
-    resp = client.post("/api/predict/batch?source=nope", headers=headers)
-    assert resp.status_code == 400
-    assert "full" in resp.get_json()["error"] and "filled" in resp.get_json()["error"]
-
     resp = client.post("/api/predict/batch", headers=headers)
     assert resp.status_code == 400
-    assert "source" in resp.get_json()["error"]
+    assert "csv file" in resp.get_json()["error"].lower()
+
+    # The legacy `source` request parameter was removed: it is ignored and a
+    # missing file still yields the same 400.
+    resp = client.post("/api/predict/batch?source=full", headers=headers)
+    assert resp.status_code == 400
+    assert "csv file" in resp.get_json()["error"].lower()
 
 
 def test_non_csv_upload_rejected():
@@ -309,7 +297,7 @@ def test_unauthenticated_rejected_401():
     app = _make_app()
     client = app.test_client()
 
-    resp = client.post("/api/predict/batch?source=filled")
+    resp = client.post("/api/predict/batch")
     assert resp.status_code == 401
     resp = client.post("/api/predict/batch/report", json={"summary": {}, "results": []})
     assert resp.status_code == 401
@@ -320,7 +308,7 @@ def test_non_admin_user_forbidden_403():
     client = app.test_client()
     headers = _user_headers(client)
 
-    resp = client.post("/api/predict/batch?source=filled", headers=headers)
+    resp = client.post("/api/predict/batch", headers=headers)
     assert resp.status_code == 403
     assert resp.get_json()["error"] == "Forbidden"
 
@@ -356,7 +344,7 @@ def test_report_returns_pdf_and_validates_payload():
     client = app.test_client()
     headers = _admin_headers(client)
 
-    batch = client.post("/api/predict/batch?source=filled", headers=headers)
+    batch = _upload(client, headers, _rows_to_csv([HIGH_RISK_ROW, LOW_RISK_ROW]), filename="report.csv")
     assert batch.status_code == 200
     payload = batch.get_json()
 

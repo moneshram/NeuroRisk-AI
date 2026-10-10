@@ -1,12 +1,13 @@
 import { motion } from "framer-motion";
 import { BrainCircuit, LockKeyhole, Mail, Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { saveSession } from "../lib/api";
 import { Ambient } from "../animations";
 import { Screen } from "../components/Screen";
 import { Field } from "../components/Field";
+import { AuthSplit } from "../components/AuthSplit";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -15,6 +16,16 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; form?: React.ReactNode }>({});
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  /* Shake the auth card whenever a form-level error appears. */
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!errors.form || !card) return;
+    card.classList.remove("auth-shake");
+    void card.offsetWidth; // reflow so the animation can restart
+    card.classList.add("auth-shake");
+  }, [errors.form]);
 
   function validate(): boolean {
     const errs: typeof errors = {};
@@ -78,8 +89,9 @@ export default function Login() {
   return (
     <Screen>
       <Ambient />
-      <div className="flex min-h-screen items-center justify-center px-4 py-8">
+      <AuthSplit>
         <motion.div
+          ref={cardRef}
           initial={{ scale: 0.96, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           className="glass glow-border w-full max-w-md rounded-[2rem] p-6 sm:p-9"
@@ -178,7 +190,7 @@ export default function Login() {
             </Link>
           </div>
         </motion.div>
-      </div>
+      </AuthSplit>
     </Screen>
   );
 }

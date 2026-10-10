@@ -8,7 +8,7 @@ Endpoints (JWT + admin, using the same ``@roles_required("admin")`` decorator
 pattern as the existing ``/api/admin/*`` routes - it performs the JWT check
 itself):
 
-* ``POST /api/predict/batch``        - score a CSV (upload) or a bundled sample
+* ``POST /api/predict/batch``        - score an uploaded CSV
 * ``POST /api/predict/batch/report`` - render a stateless PDF of batch results
 
 Design decisions / conventions (documented in the endpoint contract):
@@ -27,13 +27,12 @@ Design decisions / conventions (documented in the endpoint contract):
 * The probability histogram has exactly 10 bins of width 10 over 0-100:
   ``[0,10), [10,20) ... [90,100]`` (the final bin is closed so a 100% score
   is never dropped).
-* Uploads and sample datasets are processed fully in memory
+* Uploads are processed fully in memory
   (``io.BytesIO``/``pandas.read_csv``); nothing is written to disk or DB.
 """
 
 import io
 import logging
-from pathlib import Path
 
 import pandas as pd
 from flask import Blueprint, jsonify, request, send_file
@@ -58,11 +57,6 @@ INTEGER_COLUMNS = ("hypertension", "heart_disease")
 # Historical dataset spelling -> application feature name (mirrors the rename
 # train_stroke_model.py applies before training).
 COLUMN_RENAMES = {"Residence_type": "residence_type"}
-
-# Bundled sample datasets (copies - originals in ~/Desktop/brain stroke/archive
-# are never touched).
-SAMPLES_DIR = Path(__file__).resolve().parent / "ml" / "samples"
-SAMPLE_SOURCES = {"full": "full_data.csv", "filled": "full_filled_stroke_data.csv"}
 
 # Probability histogram: 0-100 in bins of 10.
 HISTOGRAM_EDGES = tuple(range(0, 101, 10))
@@ -99,63 +93,27 @@ def _read_upload(file_storage):
     return _parse_csv_bytes(raw)
 
 
-def _read_source(source):
-    key = str(source).strip().lower()
-    if key not in SAMPLE_SOURCES:
-        return None, (jsonify({"error": "Invalid source. Use 'full' or 'filled'."}), 400)
-    path = SAMPLES_DIR / SAMPLE_SOURCES[key]
-    if not path.exists():
-        return None, (jsonify({"error": "Sample dataset is not available on this server."}), 503)
-    try:
-        frame = pd.read_csv(path)
-    except FileNotFoundError:
-        # Do not echo the server path back to the client.
-        return None, (jsonify({"error": "Sample dataset is not available on this server."}), 503)
-    except Exception:
-        log.exception("Failed to read bundled sample dataset %s", path)
-        return None, (jsonify({"error": "Unable to read the sample dataset."}), 500)
-    return frame, None
-
-
 def _resolve_frame():
-    """Pick the input: an uploaded file wins, otherwise the `source` parameter.
+    """Pick the input: a CSV upload in the ``file`` field (the only input).
 
-    `source` is accepted from the query string, a multipart form field, or a
-    JSON body.
+    Returns ``(frame, error_response)`` — exactly one of the two is non-None.
     """
     upload = request.files.get("file")
-    if upload is not None and (upload.filename or "").strip():
-        return _read_upload(upload)
-
-    source = request.values.get("source")  # query string + form fields
-    if source is None:
-        payload = request.get_json(silent=True)
-        if isinstance(payload, dict):
-            source = payload.get("source")
-    if source is None or str(source).strip() == "":
+    if upload is None or not (upload.filename or "").strip():
         return None, (jsonify({
-            "error": "Provide a CSV file in the 'file' field or a 'source' parameter (full|filled)."
+            "error": "Provide a CSV file in the 'file' field."
         }), 400)
-    return _read_source(source)
+    return _read_upload(upload)
 
 
 def _source_label():
     """Human-readable data-source label for the PDF's 'Data Source' row.
 
-    Mirrors _resolve_frame's precedence: an uploaded file wins, otherwise
-    the bundled source parameter. Returns None when neither is present.
+    Returns ``None`` when no file was uploaded.
     """
     upload = request.files.get("file")
     if upload is not None and (upload.filename or "").strip():
         return f"Uploaded CSV: {upload.filename.strip()}"
-
-    source = request.values.get("source")
-    if source is None:
-        payload = request.get_json(silent=True)
-        if isinstance(payload, dict):
-            source = payload.get("source")
-    if source is not None and str(source).strip():
-        return f"Bundled dataset ({str(source).strip().lower()})"
     return None
 
 

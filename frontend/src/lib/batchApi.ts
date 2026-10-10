@@ -5,7 +5,7 @@
  * and the blob-download flow are intentionally mirrored from `src/lib/api.ts`
  * (which is read-only for this feature — nothing in it is edited).
  *
- *   POST {base}/predict/batch         FormData("file"=CSV) | JSON {source}
+ *   POST {base}/predict/batch         FormData("file"=CSV)
  *   POST {base}/predict/batch/report  JSON batch payload    -> application/pdf
  */
 import { logout } from "./api";
@@ -14,8 +14,6 @@ const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000/api";
 
 /** Same guard the backend enforces (10 MB CSV uploads). */
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
-
-export type BatchSource = "full" | "filled";
 
 export type BatchSummary = {
   total: number;
@@ -118,16 +116,6 @@ async function errorFrom(response: Response): Promise<Error> {
   return new Error(message || `Request failed (${response.status}).`);
 }
 
-async function postJson<T>(path: string, body: unknown): Promise<T> {
-  const response = await request(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) throw await errorFrom(response);
-  return (await response.json()) as T;
-}
-
 /** POST a CSV to /predict/batch using a multipart FormData `file` field. */
 export function runBatchFromFile(file: File): Promise<BatchResponse> {
   const form = new FormData();
@@ -138,11 +126,6 @@ export function runBatchFromFile(file: File): Promise<BatchResponse> {
       return (await response.json()) as BatchResponse;
     },
   );
-}
-
-/** POST a bundled dataset reference to /predict/batch ({source: full|filled}). */
-export function runBatchFromSource(source: BatchSource): Promise<BatchResponse> {
-  return postJson<BatchResponse>("/predict/batch", { source });
 }
 
 /**

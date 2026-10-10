@@ -122,7 +122,7 @@ function ChartCard({
   footer?: React.ReactNode;
 }) {
   return (
-    <section data-chart-card className="glass chart-surface rounded-[2rem] p-5 sm:p-6">
+    <section data-chart-card className="glass chart-surface elevated-card rounded-[2rem] p-5 sm:p-6">
       <p className="text-xs uppercase tracking-[.25em] text-slate-500">{eyebrow}</p>
       <h3 className="mt-1 text-base font-semibold sm:text-lg">{title}</h3>
       <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>

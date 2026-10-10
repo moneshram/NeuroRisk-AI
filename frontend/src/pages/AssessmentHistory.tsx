@@ -149,7 +149,7 @@ export default function AssessmentHistory() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass mx-auto max-w-lg rounded-[2rem] p-6 text-center sm:p-8"
+            className="glass elevated-card mx-auto max-w-lg rounded-[2rem] p-6 text-center sm:p-8"
           >
             <p className="text-sm text-slate-400">{error}</p>
             <button
@@ -165,7 +165,7 @@ export default function AssessmentHistory() {
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass mx-auto max-w-lg rounded-[2rem] p-8 text-center"
+            className="glass elevated-card mx-auto max-w-lg rounded-[2rem] p-8 text-center"
           >
             <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-cyan-400/10 text-cyan-300">
               <History size={26} />
@@ -310,7 +310,7 @@ export default function AssessmentHistory() {
                       initial={{ opacity: 0, x: 15 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.1 }}
-                      className="glass rounded-[1.75rem] p-6"
+                      className="glass elevated-card rounded-[1.75rem] p-6"
                     >
                       <p className="text-xs uppercase tracking-[0.25em] text-violet-300">
                         Comparison Summary
@@ -345,7 +345,7 @@ export default function AssessmentHistory() {
                       initial={{ opacity: 0, x: 15 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.18 }}
-                      className="glass rounded-[1.75rem] p-6"
+                      className="glass elevated-card rounded-[1.75rem] p-6"
                     >
                       <p className="text-xs uppercase tracking-[0.25em] text-cyan-300">
                         Stroke Risk Trend
@@ -357,7 +357,7 @@ export default function AssessmentHistory() {
                       initial={{ opacity: 0, x: 15 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.25 }}
-                      className="glass rounded-[1.75rem] p-6"
+                      className="glass elevated-card rounded-[1.75rem] p-6"
                     >
                       <button
                         onClick={handleComparisonDownload}

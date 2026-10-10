@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { api, DashboardResponse } from "../lib/api";
 import { Layout } from "../components/Layout";
 import { Screen } from "../components/Screen";
+import { CountUp } from "../animations";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -64,10 +65,10 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             whileHover={{ y: -3 }}
-            className="glass rounded-[1.75rem] p-5"
+            className="glass elevated-card rounded-[1.75rem] p-5"
           >
             <History size={18} className="text-cyan-300" />
-            <div className="mt-4 text-2xl font-bold">{data?.prediction_count ?? 0}</div>
+            <div className="mt-4 text-2xl font-bold"><CountUp value={data?.prediction_count ?? 0} /></div>
             <div className="mt-1 text-xs text-slate-500">Total assessments</div>
             <motion.button
               whileHover={{ scale: 1.02, boxShadow: "0 0 24px rgba(34,211,238,0.18)" }}
@@ -82,15 +83,15 @@ export default function Dashboard() {
             [
               [
                 "High-risk results",
-                String(data?.high_risk_count ?? 0),
+                <CountUp key="high" value={data?.high_risk_count ?? 0} />,
                 ShieldCheck,
               ],
               [
                 "Average stroke probability",
-                `${average.toFixed(2)}%`,
+                <CountUp key="avg" value={average} decimals={2} suffix="%" />,
                 Activity,
               ],
-            ] as [string, string, LucideIcon][]
+            ] as [string, React.ReactNode, LucideIcon][]
           ).map(([label, value, Icon], index) => {
             return (
               <motion.div
@@ -99,7 +100,7 @@ export default function Dashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: (index + 1) * 0.08 }}
                 whileHover={{ y: -3 }}
-                className="glass rounded-[1.75rem] p-5"
+                className="glass elevated-card rounded-[1.75rem] p-5"
               >
                 <Icon size={18} className="text-cyan-300" />
 
@@ -119,7 +120,7 @@ export default function Dashboard() {
           initial={{ opacity: 0, x: 15 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: .08 }}
-          className="glass mt-5 rounded-[2rem] p-6 sm:p-7"
+          className="glass elevated-card mt-5 rounded-[2rem] p-6 sm:p-7"
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
@@ -136,7 +137,7 @@ export default function Dashboard() {
               >
                 <div className="grid h-20 w-20 place-items-center rounded-full result-core text-center sm:h-28 sm:w-28">
                   <div>
-                    <div className="text-lg font-bold sm:text-2xl">{latest.probability.toFixed(2)}%</div>
+                    <div className="text-lg font-bold sm:text-2xl"><CountUp value={latest.probability} decimals={2} suffix="%" /></div>
                     <div className="text-[8px] uppercase tracking-wider text-slate-500 sm:text-[9px]">stroke probability</div>
                   </div>
                 </div>
@@ -160,7 +161,7 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: .15 }}
-          className="glass mt-5 rounded-[2rem] p-6 sm:p-7"
+          className="glass elevated-card mt-5 rounded-[2rem] p-6 sm:p-7"
         >
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>

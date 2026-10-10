@@ -10,12 +10,15 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
 import { api } from "../lib/api";
 import { Layout } from "../components/Layout";
 import { Screen } from "../components/Screen";
+import { CountUp } from "../animations";
+import { prefersReducedMotion } from "../animations/gsapHelpers";
+import { gsap } from "gsap";
 
 type AdminUser = {
   id: number;
@@ -63,6 +66,33 @@ export default function Admin() {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState(emptyPrediction);
   const [predErrors, setPredErrors] = useState<Record<string, string>>({});
+  const usersSectionRef = useRef<HTMLElement>(null);
+  const predsSectionRef = useRef<HTMLElement>(null);
+
+  /* Staggered row entrances for both admin tables (skipped under reduced motion). */
+  useEffect(() => {
+    const scope = usersSectionRef.current;
+    if (!scope || prefersReducedMotion()) return;
+    const ctx = gsap.context(() => {
+      gsap.from(scope.querySelectorAll("tbody tr"), {
+        y: 10, opacity: 0, duration: 0.35, stagger: 0.04, ease: "power2.out",
+        clearProps: "opacity,transform",
+      });
+    }, scope);
+    return () => ctx.revert();
+  }, [users]);
+
+  useEffect(() => {
+    const scope = predsSectionRef.current;
+    if (!scope || prefersReducedMotion()) return;
+    const ctx = gsap.context(() => {
+      gsap.from(scope.querySelectorAll("tbody tr"), {
+        y: 10, opacity: 0, duration: 0.35, stagger: 0.04, ease: "power2.out",
+        clearProps: "opacity,transform",
+      });
+    }, scope);
+    return () => ctx.revert();
+  }, [predictions]);
 
   async function load() {
     setBusy(true);
@@ -214,9 +244,9 @@ export default function Admin() {
 
         <div className="grid gap-5 md:grid-cols-3">
           {cards.map(([name, value, Icon], i) => (
-            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }} key={name} className="glass rounded-[2rem] p-5 sm:p-7">
+            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }} key={name} className="glass elevated-card rounded-[2rem] p-5 sm:p-7">
               <Icon className="text-violet-300" />
-              <div className="mt-5 text-3xl font-bold sm:mt-7 sm:text-4xl">{value}</div>
+              <div className="mt-5 text-3xl font-bold sm:mt-7 sm:text-4xl"><CountUp value={value} /></div>
               <div className="mt-2 text-sm text-slate-500">{name}</div>
             </motion.div>
           ))}
@@ -228,7 +258,7 @@ export default function Admin() {
           </div>
         )}
 
-        <section className="glass mt-6 rounded-[2rem] p-5 sm:p-7">
+        <section ref={usersSectionRef} className="glass elevated-card mt-6 rounded-[2rem] p-5 sm:p-7">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[.25em] text-cyan-300">Accounts</p>
@@ -260,7 +290,7 @@ export default function Admin() {
           </div>
         </section>
 
-        <section className="glass mt-6 rounded-[2rem] p-5 sm:p-7">
+        <section ref={predsSectionRef} className="glass elevated-card mt-6 rounded-[2rem] p-5 sm:p-7">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[.25em] text-violet-300">Risk records</p>
@@ -296,7 +326,7 @@ export default function Admin() {
             {viewUser && <Modal title="User details" close={() => setViewUser(null)}><Detail label="Name" value={viewUser.name}/><Detail label="Email" value={viewUser.email}/><Detail label="Registered" value={formatDate(viewUser.created_at)}/><Detail label="Predictions" value={String(viewUser.prediction_count)}/></Modal>}
             {viewPrediction && <Modal title={`Prediction #${viewPrediction.id}`} close={() => setViewPrediction(null)}><Detail label="User" value={`${viewPrediction.user_name} (${viewPrediction.user_email})`}/><Detail label="Result" value={viewPrediction.prediction}/><Detail label="Risk level" value={viewPrediction.risk_level}/><Detail label="Stroke probability" value={`${viewPrediction.probability.toFixed(2)}%`}/><Detail label="Created" value={formatDate(viewPrediction.created_at)}/><div className="mt-5"><div className="mb-2 text-xs uppercase tracking-wider text-slate-600">Patient input</div><pre className="max-h-64 overflow-auto break-all whitespace-pre-wrap rounded-2xl border border-white/10 bg-black/20 p-4 text-xs leading-5 text-slate-400">{JSON.stringify(viewPrediction.patient || {}, null, 2)}</pre></div></Modal>}
             {confirmUser && (
-              <motion.div initial={{ opacity: 0, scale: .98, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="glass w-full max-w-lg rounded-[2rem] p-6 shadow-2xl sm:p-8" role="dialog" aria-modal="true" aria-labelledby="remove-user-title">
+              <motion.div initial={{ opacity: 0, scale: .98, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="glass elevated-float w-full max-w-lg rounded-[2rem] p-6 sm:p-8" role="dialog" aria-modal="true" aria-labelledby="remove-user-title">
                 <div className="mb-5 flex items-start justify-between gap-4">
                   <div>
                     <p className="text-xs uppercase tracking-[.25em] text-rose-300">Remove account</p>
@@ -328,5 +358,5 @@ const binaryOpts = [{v:"0",l:"No"},{v:"1",l:"Yes"}];
 const opts = (values: string[]) => values.map((v) => ({v, l: v}));
 function formatDate(value: string | null) { return value ? new Date(value).toLocaleString() : "—"; }
 function Detail({label,value}:{label:string;value:string}) { return <div className="flex flex-col gap-1 border-b border-white/5 py-3 text-sm sm:flex-row sm:justify-between sm:gap-5"><span className="shrink-0 text-slate-600">{label}</span><span className="min-w-0 break-words text-left text-slate-300 sm:text-right">{value}</span></div>; }
-function Modal({title,close,children}:{title:string;close:()=>void;children:React.ReactNode}) { return <motion.div initial={{opacity:0,scale:.98,y:8}} animate={{opacity:1,scale:1,y:0}} className="glass max-h-[90vh] w-full max-w-3xl overflow-auto rounded-[2rem] p-5 shadow-2xl sm:p-8"><div className="mb-6 flex items-center justify-between"><h2 className="text-lg font-semibold sm:text-xl">{title}</h2><button className="modal-close ghost-btn h-9 w-9 p-0" onClick={close} aria-label="Close dialog"><span className="modal-close-x" aria-hidden="true">×</span></button></div>{children}</motion.div>; }
+function Modal({title,close,children}:{title:string;close:()=>void;children:React.ReactNode}) { return <motion.div initial={{opacity:0,scale:.98,y:8}} animate={{opacity:1,scale:1,y:0}} className="glass elevated-float max-h-[90vh] w-full max-w-3xl overflow-auto rounded-[2rem] p-5 sm:p-8"><div className="mb-6 flex items-center justify-between"><h2 className="text-lg font-semibold sm:text-xl">{title}</h2><button className="modal-close ghost-btn h-9 w-9 p-0" onClick={close} aria-label="Close dialog"><span className="modal-close-x" aria-hidden="true">×</span></button></div>{children}</motion.div>; }
 function Field({label,value,onChange,type="text",options=[],error}:{label:string;value:string;onChange:(v:string)=>void;type?:string;options?:{v:string;l:string}[];error?:string}) { return <label className="block"><span className="mb-2 block text-xs uppercase tracking-wider text-slate-500">{label}</span>{type === "select" ? <select value={value} onChange={(e)=>onChange(e.target.value)} className={`w-full rounded-2xl border border-white/10 bg-white/[.04] px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/40 ${error ? "!border-rose-400/50" : ""}`}>{options.map(o=><option key={o.v} value={o.v} className="bg-[#091321]">{o.l}</option>)}</select> : <input type={type} value={value} onChange={(e)=>onChange(e.target.value)} className={`w-full rounded-2xl border border-white/10 bg-white/[.04] px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/40 ${error ? "!border-rose-400/50" : ""}`}/>}{error && <p role="alert" className="mt-2 flex items-center gap-1.5 text-xs text-rose-300"><AlertCircle size={13} className="shrink-0"/>{error}</p>}</label>; }

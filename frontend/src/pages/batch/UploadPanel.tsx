@@ -72,7 +72,7 @@ export function UploadPanel({ busy, onFile }: UploadPanelProps) {
   return (
     <div className="grid gap-5 lg:grid-cols-[1.15fr_.85fr]">
       {/* Option A — upload */}
-      <section className="glass rounded-[2rem] p-5 sm:p-7">
+      <section className="glass elevated-card rounded-[2rem] p-5 sm:p-7">
         <p className="text-xs uppercase tracking-[.25em] text-cyan-300">Option A — upload</p>
         <h2 className="mt-1 text-xl font-semibold">Score your own CSV</h2>
         <p className="mt-1 text-sm leading-6 text-slate-500">
@@ -168,7 +168,7 @@ export function UploadPanel({ busy, onFile }: UploadPanelProps) {
       </section>
 
       {/* Model prediction overview */}
-      <section className="glass rounded-[2rem] p-5 sm:p-7">
+      <section className="glass elevated-card rounded-[2rem] p-5 sm:p-7">
         <p className="text-xs uppercase tracking-[.25em] text-violet-300">
           Model prediction overview
         </p>

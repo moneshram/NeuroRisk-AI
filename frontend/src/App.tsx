@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { MotionConfig } from "framer-motion";
 import { useLocation } from "react-router-dom";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -19,6 +20,7 @@ import AdminPasswordSettings from "./pages/AdminPasswordSettings";
 import Results from "./pages/Results";
 import Admin from "./pages/Admin";
 import Batch from "./pages/Batch";
+import Welcome from "./pages/Welcome";
 import { initializeTheme } from "./lib/theme";
 import { LiquidChromeLayer } from "./animations";
 
@@ -31,8 +33,10 @@ export default function App() {
   return (
     <>
       <LiquidChromeLayer />
+      <MotionConfig reducedMotion="user">
       <Routes>
-      <Route path="/login" element={<Login />} />
+        <Route path="/welcome" element={<Welcome />} />
+        <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/register" element={<Register />} />
@@ -54,7 +58,8 @@ export default function App() {
         <Route path="/admin/settings/password" element={<AdminPasswordSettings />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
+      </Routes>
+      </MotionConfig>
     </>
   );
 }

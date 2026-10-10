@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
 import { BrainCircuit, ShieldCheck, Lock, Mail } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { api, saveSession, User } from "../lib/api";
 import { Screen } from "../components/Screen";
+import { AuthSplit } from "../components/AuthSplit";
 
 export default function AdminLogin() {
   const nav = useNavigate();
@@ -12,6 +13,16 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({});
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  /* Shake the auth card whenever a form-level error appears. */
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!errors.form || !card) return;
+    card.classList.remove("auth-shake");
+    void card.offsetWidth; // reflow so the animation can restart
+    card.classList.add("auth-shake");
+  }, [errors.form]);
 
   function validate(): boolean {
     const errs: typeof errors = {};
@@ -43,9 +54,9 @@ export default function AdminLogin() {
 
   return (
     <Screen>
-      <div className="min-h-screen bg-[radial-gradient(circle_at_50%_30%,rgba(124,58,237,.14),transparent_35%)] px-4 py-12">
-        <div className="mx-auto max-w-md">
-          <motion.div initial={{ opacity: 0, scale: .96 }} animate={{ opacity: 1, scale: 1 }} className="rounded-[2rem] border border-violet-400/20 bg-[#080912]/90 p-6 shadow-[0_0_80px_rgba(124,58,237,.1)] sm:p-8">
+      <AuthSplit>
+        <div className="mx-auto w-full max-w-md">
+          <motion.div ref={cardRef} initial={{ opacity: 0, scale: .96 }} animate={{ opacity: 1, scale: 1 }} className="rounded-[2rem] border border-violet-400/20 bg-[#080912]/90 p-6 shadow-[0_0_80px_rgba(124,58,237,.1)] sm:p-8">
             <div className="mb-8 text-center">
               <div className="flex items-center justify-center gap-3">
                 <span className="auth-brand-mark grid h-12 w-12 place-items-center rounded-2xl"><BrainCircuit size={25} /></span>
@@ -99,7 +110,7 @@ export default function AdminLogin() {
             <Link className="mt-7 block text-center text-sm text-slate-500 hover:text-white" to="/login">← Return to user login</Link>
           </motion.div>
         </div>
-      </div>
+      </AuthSplit>
     </Screen>
   );
 }

@@ -156,7 +156,7 @@ export function ResultsTable({
   const to = Math.min(start + pageSize, sorted.length);
 
   return (
-    <section data-results-entrance className="glass rounded-[2rem] p-5 sm:p-7">
+    <section data-results-entrance className="glass elevated-card rounded-[2rem] p-5 sm:p-7">
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[.25em] text-cyan-300">Row-level results</p>
