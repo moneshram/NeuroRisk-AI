@@ -273,6 +273,26 @@ export function BatchCharts({ data }: { data: BatchChartData }) {
           description="Rows per 10-point bin (0–100%). Bins at or above the 4% risk threshold are shown in rose."
           ariaLabel="Histogram of predicted stroke probability in ten-point bins"
           height={250}
+          footer={
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+              <span className="flex items-center gap-2 text-xs text-slate-400">
+                <span
+                  aria-hidden="true"
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ background: PALETTE.low }}
+                />
+                Below {RISK_THRESHOLD_PCT}% (Low risk)
+              </span>
+              <span className="flex items-center gap-2 text-xs text-slate-400">
+                <span
+                  aria-hidden="true"
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ background: PALETTE.high }}
+                />
+                {RISK_THRESHOLD_PCT}% and above (High risk)
+              </span>
+            </div>
+          }
         >
           <BarChart data={histogram} margin={{ top: 8, right: 8, left: -18, bottom: 4 }}>
             <CartesianGrid vertical={false} stroke={GRID_STYLE.stroke} style={GRID_STYLE} />

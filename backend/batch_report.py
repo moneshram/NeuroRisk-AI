@@ -11,6 +11,10 @@ Contract implemented here (see batch.py for the JSON side):
 * Row cap: the detail table shows the TOP ``REPORT_ROW_CAP`` (50) rows by
   ``stroke_probability`` (descending, stable). Summary, chart aggregates and
   histogram cover the FULL payload. The PDF states the cap explicitly.
+* Every chart shown on the batch dashboard is reproduced at the bottom of the
+  report ("Report Graphs"): the low-vs-high risk split donut, the probability
+  histogram (with legend), the age-vs-probability scatter, and the three
+  high-risk-rate bar charts (hypertension, smoking status, work type).
 * All probabilities/rates are printed on the percent scale used by the JSON
   payload (e.g. 19.51%).
 * A medical disclaimer is always included: batch prediction is decision
@@ -21,9 +25,10 @@ import io
 import math
 from datetime import datetime, timezone
 
-from reportlab.graphics.shapes import Drawing, Line, Rect, String
+from reportlab.graphics.shapes import Circle, Drawing, Line, Rect, String, Wedge
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
+from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.platypus import HRFlowable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from ml.pipeline import RISK_THRESHOLD
@@ -31,7 +36,9 @@ from report import (
     _header_footer,
     _risk_color,
     _styles,
+    BRAND_AMBER,
     BRAND_CYAN,
+    BRAND_EMERALD,
     BRAND_LIGHT_BG,
     BRAND_NAVY,
     BRAND_SLATE_LIGHT,
@@ -160,6 +167,28 @@ def _model_display_name() -> str:
         return "Model"
 
 
+def _legend_inline(drawing, x, y, items, font_size=7.0, swatch=7.0, gap=12.0):
+    """Horizontal swatch+label legend. ``items`` = [(color, text), ...] where
+    color is a reportlab color or the string ``"dash"`` for a dashed-line
+    swatch. Returns the cursor x after the last label."""
+    cursor = x
+    for index, (color, text) in enumerate(items):
+        if color == "dash":
+            drawing.add(Line(cursor, y + swatch / 2.0, cursor + swatch, y + swatch / 2.0,
+                             strokeColor=BRAND_AMBER, strokeWidth=1.1,
+                             strokeDashArray=[2, 1.5]))
+        else:
+            drawing.add(Rect(cursor, y, swatch, swatch, fillColor=color,
+                             strokeColor=BRAND_SLATE_LIGHT, strokeWidth=0.3))
+        drawing.add(String(cursor + swatch + 3.5, y + 1.2, text,
+                           fontName="Helvetica", fontSize=font_size,
+                           fillColor=BRAND_NAVY))
+        cursor += swatch + 3.5 + stringWidth(text, "Helvetica", font_size)
+        if index < len(items) - 1:
+            cursor += gap
+    return cursor
+
+
 def _distribution_graph(chart, model_name):
     """Vector histogram of stroke probabilities, drawn at the report bottom.
 
@@ -172,7 +201,7 @@ def _distribution_graph(chart, model_name):
     if not histogram:
         return None
 
-    width, height = 170 * mm, 62 * mm
+    width, height = 170 * mm, 70 * mm
     drawing = Drawing(width, height)
     left, bottom = 34.0, 30.0
     plot_w = width - left - 14.0
@@ -239,6 +268,212 @@ def _distribution_graph(chart, model_name):
     drawing.add(marker)
     drawing.add(String(tx + 3, bottom + plot_h + 6, f"{thr_pct:g}% threshold",
                        fontName="Helvetica-Bold", fontSize=6.5, fillColor=amber))
+
+    # Legend: what the bar colors and marker represent
+    _legend_inline(drawing, 4.0, 4.0, [
+        (emerald, f"Low-risk bins (below {thr_pct:g}%)"),
+        (amber, f"High-risk bins ({thr_pct:g}% and above)"),
+        ("dash", f"{thr_pct:g}% decision threshold"),
+    ], font_size=7.0)
+    return drawing
+
+
+def _classification_donut(classification, model_name, thr_pct):
+    """Donut of the low vs high risk split (dashboard card "Low vs high risk
+    split"), with an explicit legend of counts and shares."""
+    low = int((classification or {}).get("low") or 0)
+    high = int((classification or {}).get("high") or 0)
+    total = low + high
+    if total <= 0:
+        return None
+
+    width, height = 170 * mm, 66 * mm
+    drawing = Drawing(width, height)
+    drawing.add(String(4, height - 13, "Low vs High Risk Split",
+                       fontName="Helvetica-Bold", fontSize=10.5, fillColor=BRAND_NAVY))
+    drawing.add(String(
+        4, height - 25,
+        f"Share of rows in each predicted risk class for this batch \u00b7 "
+        f"{model_name} \u00b7 High Risk = probability \u2265 {thr_pct:g}%.",
+        fontName="Helvetica", fontSize=7.5, fillColor=BRAND_SLATE_LIGHT))
+
+    cx, cy, r_out, r_in = 58.0, (height - 34.0) / 2.0 + 2.0, 42.0, 24.0
+    e_low = 360.0 * low / total
+    e_high = 360.0 * high / total
+    if e_low > 0:
+        drawing.add(Wedge(cx, cy, r_out, 90.0, e_low, fillColor=BRAND_EMERALD,
+                          strokeColor=BRAND_WHITE, strokeWidth=1.0))
+    if e_high > 0:
+        drawing.add(Wedge(cx, cy, r_out, 90.0 + e_low, e_high,
+                          fillColor=BRAND_AMBER, strokeColor=BRAND_WHITE,
+                          strokeWidth=1.0))
+    drawing.add(Circle(cx, cy, r_in, fillColor=BRAND_WHITE, strokeColor=None))
+    drawing.add(String(cx, cy + 2.0, str(total), fontName="Helvetica-Bold",
+                       fontSize=15, fillColor=BRAND_NAVY, textAnchor="middle"))
+    drawing.add(String(cx, cy - 10.0, "rows", fontName="Helvetica", fontSize=7,
+                       fillColor=BRAND_SLATE_LIGHT, textAnchor="middle"))
+
+    lx, ly = cx + r_out + 24.0, cy + 24.0
+    drawing.add(String(lx, ly + 14.0, "LEGEND", fontName="Helvetica-Bold",
+                       fontSize=6.5, fillColor=BRAND_SLATE_LIGHT))
+    items = [
+        (BRAND_EMERALD, f"Low risk: {low} rows ({100.0 * low / total:.2f}%)"),
+        (BRAND_AMBER, f"High risk: {high} rows ({100.0 * high / total:.2f}%)"),
+    ]
+    for offset, (color, text) in enumerate(items):
+        y = ly - offset * 16.0
+        drawing.add(Rect(lx, y, 8.0, 8.0, fillColor=color,
+                         strokeColor=BRAND_SLATE_LIGHT, strokeWidth=0.3))
+        drawing.add(String(lx + 12.0, y + 1.5, text, fontName="Helvetica",
+                           fontSize=8, fillColor=BRAND_NAVY))
+    return drawing
+
+
+def _age_probability_scatter(series, model_name, thr_pct):
+    """Age vs predicted probability scatter (dashboard card), colored by risk."""
+    points = [p for p in (series or []) if isinstance(p, dict)]
+    if not points:
+        return None
+
+    width, height = 170 * mm, 66 * mm
+    drawing = Drawing(width, height)
+    drawing.add(String(4, height - 13, "Age vs Predicted Probability",
+                       fontName="Helvetica-Bold", fontSize=10.5, fillColor=BRAND_NAVY))
+    drawing.add(String(
+        4, height - 25,
+        f"One dot per scored row, colored by risk class \u00b7 {model_name} \u00b7 "
+        f"High Risk \u2265 {thr_pct:g}%.",
+        fontName="Helvetica", fontSize=7.5, fillColor=BRAND_SLATE_LIGHT))
+
+    ages, probs = [], []
+    for point in points:
+        try:
+            ages.append(float(point.get("age")))
+            probs.append(float(point.get("probability")))
+        except (TypeError, ValueError):
+            continue
+    if not ages:
+        return None
+
+    left, bottom = 44.0, 34.0
+    plot_w = width - left - 16.0
+    plot_h = height - bottom - 46.0
+    age_min, age_max = min(ages), max(ages)
+    if age_max <= age_min:
+        age_max = age_min + 1.0
+    y_top = max(10.0, math.ceil(max(max(probs), thr_pct) / 10.0) * 10.0)
+
+    for tick in sorted({0.0, y_top / 2.0, y_top}):
+        y = bottom + plot_h * tick / y_top
+        drawing.add(Line(left, y, left + plot_w, y,
+                         strokeColor=BRAND_SLATE_LIGHT, strokeWidth=0.3))
+        drawing.add(String(left - 5, y - 2.5, f"{tick:g}%",
+                           fontName="Helvetica", fontSize=6.5,
+                           fillColor=BRAND_SLATE_LIGHT, textAnchor="end"))
+
+    if thr_pct < y_top:
+        ty = bottom + plot_h * thr_pct / y_top
+        marker = Line(left, ty, left + plot_w, ty)
+        marker.strokeColor = BRAND_AMBER
+        marker.strokeWidth = 1.0
+        marker.strokeDashArray = [3, 2]
+        drawing.add(marker)
+        drawing.add(String(left + plot_w - 2, ty + 3, f"{thr_pct:g}% threshold",
+                           fontName="Helvetica-Bold", fontSize=6,
+                           fillColor=BRAND_AMBER, textAnchor="end"))
+
+    drawing.add(Line(left, bottom, left, bottom + plot_h,
+                     strokeColor=BRAND_NAVY, strokeWidth=0.8))
+    drawing.add(Line(left, bottom, left + plot_w, bottom,
+                     strokeColor=BRAND_NAVY, strokeWidth=0.8))
+
+    for tick in sorted({age_min, (age_min + age_max) / 2.0, age_max}):
+        x = left + plot_w * (tick - age_min) / (age_max - age_min)
+        drawing.add(Line(x, bottom, x, bottom - 3,
+                         strokeColor=BRAND_SLATE_LIGHT, strokeWidth=0.5))
+        drawing.add(String(x, bottom - 11, f"{tick:g}", fontName="Helvetica",
+                           fontSize=6.5, fillColor=BRAND_SLATE_LIGHT,
+                           textAnchor="middle"))
+    drawing.add(String(left + plot_w / 2.0, bottom - 22, "Age (years)",
+                       fontName="Helvetica", fontSize=6.5,
+                       fillColor=BRAND_SLATE_LIGHT, textAnchor="middle"))
+
+    for point in points:
+        try:
+            age = float(point.get("age"))
+            prob = float(point.get("probability"))
+        except (TypeError, ValueError):
+            continue
+        x = left + plot_w * (age - age_min) / (age_max - age_min)
+        y = bottom + plot_h * prob / y_top
+        drawing.add(Circle(x, y, 1.7,
+                           fillColor=_risk_color(str(point.get("risk_level", ""))),
+                           strokeColor=None))
+
+    _legend_inline(drawing, left + plot_w - 118.0, bottom + plot_h + 7.0, [
+        (BRAND_EMERALD, "Low risk"),
+        (BRAND_AMBER, "High risk"),
+    ], font_size=6.5)
+    return drawing
+
+
+def _group_rate_chart(series, heading, model_name, thr_pct, label_map=None):
+    """Horizontal bar chart of the high-risk rate per group (dashboard cards
+    "Risk by hypertension / smoking status / work type")."""
+    if not series:
+        return None
+    label_map = label_map or {}
+
+    width = 170 * mm
+    row_h = 9.0 * mm
+    base_y, top_pad = 16.0, 34.0
+    height = top_pad + len(series) * row_h + base_y
+    drawing = Drawing(width, height)
+    drawing.add(String(4, height - 13, heading,
+                       fontName="Helvetica-Bold", fontSize=10.5,
+                       fillColor=BRAND_NAVY))
+    drawing.add(String(
+        4, height - 25,
+        f"High-risk rate per group (% of rows at or above the {thr_pct:g}% "
+        f"threshold) \u00b7 {model_name}.",
+        fontName="Helvetica", fontSize=7.5, fillColor=BRAND_SLATE_LIGHT))
+
+    left, right = 132.0, 68.0
+    plot_w = width - left - right
+    plot_top = height - 34.0
+
+    for pct in (0, 25, 50, 75, 100):
+        x = left + plot_w * pct / 100.0
+        drawing.add(Line(x, base_y, x, plot_top,
+                         strokeColor=BRAND_SLATE_LIGHT, strokeWidth=0.3))
+        drawing.add(String(x, base_y - 10, f"{pct}%", fontName="Helvetica",
+                           fontSize=6.5, fillColor=BRAND_SLATE_LIGHT,
+                           textAnchor="middle"))
+    drawing.add(Line(left, base_y, left, plot_top,
+                     strokeColor=BRAND_NAVY, strokeWidth=0.8))
+
+    slot = (plot_top - base_y) / len(series)
+    bar_h = slot * 0.5
+    for index, entry in enumerate(series):
+        label = label_map.get(str(entry.get("label", "")),
+                              str(entry.get("label", "\u2014")))
+        try:
+            rate = min(max(float(entry.get("rate") or 0.0), 0.0), 100.0)
+        except (TypeError, ValueError):
+            rate = 0.0
+        count = int(entry.get("total") or 0)
+        high = int(entry.get("high_risk") or 0)
+        y_mid = plot_top - slot * (index + 0.5)
+        drawing.add(String(left - 6, y_mid - 2.4, label,
+                           fontName="Helvetica", fontSize=7,
+                           fillColor=BRAND_NAVY, textAnchor="end"))
+        bar_w = plot_w * rate / 100.0
+        drawing.add(Rect(left, y_mid - bar_h / 2.0, max(bar_w, 0.6), bar_h,
+                         fillColor=BRAND_CYAN, strokeColor=None))
+        drawing.add(String(left + bar_w + 4, y_mid - 2.4,
+                           f"{rate:.1f}%  ({high}/{count} rows)",
+                           fontName="Helvetica", fontSize=6.5,
+                           fillColor=BRAND_NAVY))
     return drawing
 
 
@@ -388,17 +623,84 @@ def generate_batch_report(payload, source_label=None, row_cap=REPORT_ROW_CAP):
     else:
         story.append(Paragraph("No rows were supplied in this batch payload.", styles["Body"]))
 
-    # ---- Graph attached at the bottom of every report -----------------
+    # ---- Graphs attached at the bottom of every report -----------------
+    # Reproduces every chart from the batch dashboard: risk-split donut,
+    # probability histogram (with legend), age-vs-probability scatter and the
+    # three high-risk-rate bar charts. Each drawing carries its own title,
+    # subtitle and legend; captions below explain how to read it.
+    story.append(Spacer(1, 5 * mm))
+    story.append(Paragraph("Report Graphs", styles["SectionHead"]))
+    story.append(Paragraph(
+        f"All charts shown on the batch dashboard, reproduced for this report "
+        f"(&#8226; model {model_name} &#8226; High Risk \u2265 {thr_pct:g}% "
+        f"&#8226; every graph includes a legend).",
+        styles["Small"],
+    ))
+
+    donut = _classification_donut(chart.get("classification"), model_name, thr_pct)
+    if donut is not None:
+        story.append(Spacer(1, 2 * mm))
+        story.append(donut)
+        story.append(Spacer(1, 1 * mm))
+        story.append(Paragraph(
+            f"<b>Low vs high risk split</b> &#8212; the ring divides all "
+            f"<b>{total}</b> scored rows by predicted class: emerald = Low risk, "
+            f"amber = High risk (probability \u2265 {thr_pct:g}%); the legend "
+            f"shows each class's row count and share of the batch.",
+            styles["Small"],
+        ))
+
     graph = _distribution_graph(chart, model_name)
     if graph is not None:
-        story.append(Spacer(1, 5 * mm))
+        story.append(Spacer(1, 4 * mm))
         story.append(Paragraph("Risk Distribution Graph", styles["SectionHead"]))
         story.append(graph)
-        story.append(Spacer(1, 2 * mm))
+        story.append(Spacer(1, 1 * mm))
         story.append(Paragraph(
-            f"Stroke probability distribution across all <b>{total}</b> scored "
-            f"rows. Amber bars (bins \u2265 {thr_pct:g}%) are the High Risk "
-            f"territory under the {model_name} model.",
+            f"<b>Probability histogram</b> &#8212; how to read: each bar counts "
+            f"the rows whose predicted stroke probability falls in that "
+            f"10-point bin, across all <b>{total}</b> scored rows. Legend under "
+            f"the axis: emerald bar = bin below the {thr_pct:g}% threshold "
+            f"(Low Risk territory), amber bar = bin at or above it (High Risk "
+            f"territory), dashed amber line = the {thr_pct:g}% decision "
+            f"threshold under the {model_name} model.",
+            styles["Small"],
+        ))
+
+    scatter = _age_probability_scatter(
+        chart.get("age_vs_probability"), model_name, thr_pct)
+    if scatter is not None:
+        story.append(Spacer(1, 4 * mm))
+        story.append(scatter)
+        story.append(Spacer(1, 1 * mm))
+        story.append(Paragraph(
+            f"<b>Age vs predicted probability</b> &#8212; how to read: one dot "
+            f"per scored row; horizontal axis = patient age, vertical axis = "
+            f"predicted stroke probability. Dot color = final risk class "
+            f"(emerald = Low risk, amber = High risk); the dashed line marks "
+            f"the {thr_pct:g}% threshold.",
+            styles["Small"],
+        ))
+
+    group_charts = (
+        ("Risk by Hypertension", chart.get("risk_by_hypertension"),
+         {"0": "No", "1": "Yes"}),
+        ("Risk by Smoking Status", chart.get("risk_by_smoking"), None),
+        ("Risk by Work Type", chart.get("risk_by_work_type"), None),
+    )
+    for heading, series, label_map in group_charts:
+        rate_chart = _group_rate_chart(series, heading, model_name, thr_pct,
+                                       label_map=label_map)
+        if rate_chart is None:
+            continue
+        story.append(Spacer(1, 4 * mm))
+        story.append(rate_chart)
+        story.append(Spacer(1, 1 * mm))
+        story.append(Paragraph(
+            f"<b>{heading}</b> &#8212; how to read: each cyan bar is the share "
+            f"of rows in that group classified High Risk (rows \u2265 "
+            f"{thr_pct:g}% probability); the value after each bar shows the "
+            f"rate and the exact count as (high-risk / total) rows.",
             styles["Small"],
         ))
 
