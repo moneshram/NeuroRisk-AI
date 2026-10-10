@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { gsap } from "gsap";
 import { Activity, AlertTriangle, CheckCircle2, Layers } from "lucide-react";
 import type { BatchRow, BatchSummary } from "../../lib/batchApi";
-import { prefersReducedMotion } from "./motion";
+import { prefersReducedMotion } from "../../animations/gsapHelpers";
+import { CountUp } from "../../animations";
 
 export type RiskFilter = "all" | "High Risk" | "Low Risk";
 
@@ -14,42 +15,6 @@ type Props = {
   onFilter: (filter: RiskFilter) => void;
   onAverage: () => void;
 };
-
-/* Counts from the previous value up to the new one (skipped under reduced motion). */
-function CountUp({ value, decimals = 0, suffix = "" }: { value: number; decimals?: number; suffix?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const prevRef = useRef(0);
-  const fmt = (v: number) => (decimals > 0 ? v.toFixed(decimals) : Math.round(v).toLocaleString()) + suffix;
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const from = prevRef.current;
-    prevRef.current = value;
-    if (prefersReducedMotion() || from === value) {
-      el.textContent = fmt(value);
-      return;
-    }
-    const proxy = { v: from };
-    const tween = gsap.to(proxy, {
-      v: value,
-      duration: 0.7,
-      ease: "power2.out",
-      onUpdate: () => {
-        el.textContent = fmt(proxy.v);
-      },
-      onComplete: () => {
-        el.textContent = fmt(value);
-      },
-    });
-    return () => {
-      tween.kill();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
-
-  return <span ref={ref}>{fmt(value)}</span>;
-}
 
 export function SummaryCards({ summary, results, sourceLabel, riskFilter, onFilter, onAverage }: Props) {
   const ref = useRef<HTMLDivElement>(null);

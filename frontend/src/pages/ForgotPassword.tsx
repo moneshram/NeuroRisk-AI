@@ -5,7 +5,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import toast from "react-hot-toast";
 import { api } from "../lib/api";
 import { Screen } from "../components/Screen";
-import { Ambient } from "../components/Ambient";
+import { Ambient } from "../animations";
 import { Field } from "../components/Field";
 
 const RESEND_COOLDOWN = 60;

@@ -15,7 +15,7 @@ import {
   YAxis,
 } from "recharts";
 import type { BatchChartData, RiskGroup } from "../../lib/batchApi";
-import { prefersReducedMotion } from "./motion";
+import { prefersReducedMotion } from "../../animations/gsapHelpers";
 
 /**
  * One palette reused across every chart on the page:

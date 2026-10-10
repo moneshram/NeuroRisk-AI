@@ -1,0 +1,82 @@
+.liquidChrome-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* ------------------------------------------------------------------ */
+/* Pure-CSS liquid fallback: always rendered UNDER the WebGL canvas.   */
+/* When WebGL works, the shader covers it; when a browser/privacy      */
+/* shield blocks WebGL (e.g. Brave fingerprinting protection), these   */
+/* drifting teal blobs keep the animated liquid look everywhere.      */
+/* ------------------------------------------------------------------ */
+.liquid-fallback {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #060d16;
+}
+
+.liquid-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  will-change: transform;
+}
+
+.liquid-blob-b1 {
+  width: 62vw;
+  height: 62vw;
+  left: -12vw;
+  top: -22vh;
+  background: radial-gradient(circle, rgba(14, 116, 144, 0.42), transparent 70%);
+  animation: liquid-drift-1 26s ease-in-out infinite alternate;
+}
+
+.liquid-blob-b2 {
+  width: 50vw;
+  height: 50vw;
+  right: -14vw;
+  top: -10vh;
+  background: radial-gradient(circle, rgba(8, 145, 178, 0.30), transparent 70%);
+  animation: liquid-drift-2 32s ease-in-out infinite alternate;
+}
+
+.liquid-blob-b3 {
+  width: 55vw;
+  height: 55vw;
+  right: -8vw;
+  bottom: -25vh;
+  background: radial-gradient(circle, rgba(14, 116, 144, 0.34), transparent 70%);
+  animation: liquid-drift-3 28s ease-in-out infinite alternate;
+}
+
+.liquid-blob-b4 {
+  width: 42vw;
+  height: 42vw;
+  left: 10vw;
+  bottom: -18vh;
+  background: radial-gradient(circle, rgba(5, 150, 105, 0.22), transparent 70%);
+  animation: liquid-drift-4 34s ease-in-out infinite alternate;
+}
+
+@keyframes liquid-drift-1 {
+  to { transform: translate(16vw, 12vh) scale(1.18); }
+}
+
+@keyframes liquid-drift-2 {
+  to { transform: translate(-14vw, 16vh) scale(1.25); }
+}
+
+@keyframes liquid-drift-3 {
+  to { transform: translate(-12vw, -14vh) scale(1.15); }
+}
+
+@keyframes liquid-drift-4 {
+  to { transform: translate(14vw, -10vh) scale(1.3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-blob {
+    animation: none;
+  }
+}

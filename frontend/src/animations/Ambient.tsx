@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 
+/** Decorative ambient rings + glow blobs for auth pages (fixed, non-interactive). */
 export function Ambient() {
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden">
@@ -17,3 +18,5 @@ export function Ambient() {
     </div>
   );
 }
+
+export default Ambient;

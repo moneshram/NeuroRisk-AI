@@ -15,7 +15,7 @@ import { SummaryCards, type RiskFilter } from "./batch/SummaryCards";
 import { BatchCharts } from "./batch/BatchCharts";
 import { ResultsTable, type SortRequest } from "./batch/ResultsTable";
 import { buildResultsCsv, downloadTextFile } from "./batch/csv";
-import { bindButtonMotion, prefersReducedMotion } from "./batch/motion";
+import { bindButtonMotion, prefersReducedMotion } from "../animations/gsapHelpers";
 
 export default function Batch() {
   const rootRef = useRef<HTMLDivElement>(null);

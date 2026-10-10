@@ -15,7 +15,7 @@ import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import { api } from "../lib/api";
-import { Ambient } from "../components/Ambient";
+import { Ambient } from "../animations";
 import { Screen } from "../components/Screen";
 import { FieldError } from "../components/FieldError";
 

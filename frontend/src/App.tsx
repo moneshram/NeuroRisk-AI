@@ -20,6 +20,7 @@ import Results from "./pages/Results";
 import Admin from "./pages/Admin";
 import Batch from "./pages/Batch";
 import { initializeTheme } from "./lib/theme";
+import { LiquidChromeLayer } from "./animations";
 
 export default function App() {
   const location = useLocation();
@@ -28,7 +29,9 @@ export default function App() {
   }, [location.pathname]);
 
   return (
-    <Routes>
+    <>
+      <LiquidChromeLayer />
+      <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
@@ -52,5 +55,6 @@ export default function App() {
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
+    </>
   );
 }

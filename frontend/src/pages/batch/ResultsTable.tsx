@@ -3,7 +3,7 @@ import { gsap } from "gsap";
 import { ChevronLeft, ChevronRight, ChevronsUpDown, Table2 } from "lucide-react";
 import type { BatchRow } from "../../lib/batchApi";
 import type { RiskFilter } from "./SummaryCards";
-import { prefersReducedMotion } from "./motion";
+import { prefersReducedMotion } from "../../animations/gsapHelpers";
 
 type SortKey = keyof BatchRow;
 type SortDir = "asc" | "desc";

@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { saveSession } from "../lib/api";
-import { Ambient } from "../components/Ambient";
+import { Ambient } from "../animations";
 import { Screen } from "../components/Screen";
 import { Field } from "../components/Field";
 

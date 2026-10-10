@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import { FileText, Loader2, UploadCloud } from "lucide-react";
 import { MAX_UPLOAD_BYTES } from "../../lib/batchApi";
 import { CSV_TEMPLATE, downloadTextFile } from "./csv";
-import { prefersReducedMotion } from "./motion";
+import { prefersReducedMotion } from "../../animations/gsapHelpers";
 
 type UploadPanelProps = {
   busy: boolean;
