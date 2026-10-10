@@ -132,7 +132,7 @@ export function SummaryCards({ summary, results, sourceLabel, riskFilter, onFilt
       key: "average" as const,
       label: "Average probability",
       display: <CountUp value={summary.avg_probability} decimals={2} suffix="%" />,
-      hint: `Median ${stats.median.toFixed(2)}% · peak ${summary.max_probability.toFixed(2)}% · ≥5% = high risk`,
+      hint: `Median ${stats.median.toFixed(2)}% · peak ${summary.max_probability.toFixed(2)}% · ≥4% = high risk`,
       Icon: Activity,
       accent: "text-amber-300",
       active: false,

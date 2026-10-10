@@ -18,12 +18,15 @@ Contract implemented here (see batch.py for the JSON side):
 """
 
 import io
+import math
 from datetime import datetime, timezone
 
+from reportlab.graphics.shapes import Drawing, Line, Rect, String
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.platypus import HRFlowable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
+from ml.pipeline import RISK_THRESHOLD
 from report import (
     _header_footer,
     _risk_color,
@@ -137,6 +140,108 @@ def _result_sort_key(row):
         return -1.0
 
 
+def _model_display_name() -> str:
+    """Human-friendly production model name from the saved training metadata."""
+    try:
+        import json
+        from ml.pipeline import ARTIFACT
+
+        meta = json.loads((ARTIFACT.parent / "model_metadata.json").read_text())
+        raw = str(meta.get("model_type") or "")
+        friendly = {
+            "RandomForestClassifier": "Random Forest",
+            "LogisticRegression": "Logistic Regression",
+        }.get(raw)
+        if friendly:
+            return friendly
+        cleaned = raw.replace("Classifier", "").replace("Regression", " Regression")
+        return cleaned.strip() or "Model"
+    except Exception:  # pragma: no cover - metadata is advisory only
+        return "Model"
+
+
+def _distribution_graph(chart, model_name):
+    """Vector histogram of stroke probabilities, drawn at the report bottom.
+
+    Uses reportlab's own graphics (no image library): bars per 10-point bin,
+    amber for bins at/above the production threshold (High Risk), emerald
+    below it, plus a dashed threshold marker. Returns None when the payload
+    carries no histogram.
+    """
+    histogram = chart.get("probability_histogram") or []
+    if not histogram:
+        return None
+
+    width, height = 170 * mm, 62 * mm
+    drawing = Drawing(width, height)
+    left, bottom = 34.0, 30.0
+    plot_w = width - left - 14.0
+    plot_h = height - bottom - 34.0
+    thr_pct = RISK_THRESHOLD * 100
+
+    amber = _risk_color("High Risk")
+    emerald = _risk_color("Low Risk")
+    slate = BRAND_SLATE_LIGHT
+    navy = BRAND_NAVY
+
+    drawing.add(String(4, height - 13, "Stroke Probability Distribution",
+                       fontName="Helvetica-Bold", fontSize=10.5, fillColor=navy))
+    drawing.add(String(
+        4, height - 25,
+        f"Rows per 10-point bin (0\u2013100%) \u00b7 {model_name} \u00b7 "
+        f"bins at or above the {thr_pct:g}% threshold are shown in amber.",
+        fontName="Helvetica", fontSize=7.5, fillColor=slate))
+
+    counts = [max(0, int(b.get("count") or 0)) for b in histogram]
+    y_max = max(max(counts), 1)
+    step = max(1, int(math.ceil(y_max / 3)))
+
+    # Horizontal grid + y labels (0, step, 2*step, ... <= y_max scaled)
+    ticks = sorted({0, int(math.ceil(y_max / 2)), y_max})
+    for tick in ticks:
+        y = bottom + (plot_h * tick / y_max)
+        drawing.add(Line(left, y, left + plot_w, y,
+                         strokeColor=slate, strokeWidth=0.3))
+        drawing.add(String(left - 5, y - 2.5, str(tick), fontName="Helvetica",
+                           fontSize=6.5, fillColor=slate, textAnchor="end"))
+    _ = step
+
+    # Axes
+    drawing.add(Line(left, bottom, left, bottom + plot_h, strokeColor=navy, strokeWidth=0.8))
+    drawing.add(Line(left, bottom, left + plot_w, bottom, strokeColor=navy, strokeWidth=0.8))
+
+    n = len(histogram)
+    slot = plot_w / n
+    bar_w = slot * 0.64
+    for index, bin_ in enumerate(histogram):
+        count = counts[index]
+        x = left + slot * index + (slot - bar_w) / 2.0
+        bar_h = plot_h * count / y_max
+        start = bin_.get("start", index * 10)
+        above = float(start) >= thr_pct
+        drawing.add(Rect(x, bottom, bar_w, max(bar_h, 0.6),
+                         fillColor=amber if above else emerald, strokeColor=None))
+        if count:
+            drawing.add(String(x + bar_w / 2.0, bottom + bar_h + 3.5, str(count),
+                               fontName="Helvetica", fontSize=6.5, fillColor=navy,
+                               textAnchor="middle"))
+        label = f"{start}\u2013{bin_.get('end', start + 10)}"
+        drawing.add(String(x + bar_w / 2.0, bottom - 11, label,
+                           fontName="Helvetica", fontSize=6.2, fillColor=slate,
+                           textAnchor="middle"))
+
+    # Dashed threshold marker
+    tx = left + plot_w * RISK_THRESHOLD
+    marker = Line(tx, bottom, tx, bottom + plot_h + 5)
+    marker.strokeColor = amber
+    marker.strokeWidth = 1.1
+    marker.strokeDashArray = [3, 2]
+    drawing.add(marker)
+    drawing.add(String(tx + 3, bottom + plot_h + 6, f"{thr_pct:g}% threshold",
+                       fontName="Helvetica-Bold", fontSize=6.5, fillColor=amber))
+    return drawing
+
+
 def generate_batch_report(payload, source_label=None, row_cap=REPORT_ROW_CAP):
     """Build the batch PDF and return an in-memory BytesIO positioned at 0."""
     summary = payload.get("summary") or {}
@@ -166,11 +271,18 @@ def generate_batch_report(payload, source_label=None, row_cap=REPORT_ROW_CAP):
 
     now_str = datetime.now(timezone.utc).strftime("%B %d, %Y at %I:%M %p UTC")
     source_text = str(source_label) if source_label else "\u2014"
+    model_name = _model_display_name()
+    thr_pct = RISK_THRESHOLD * 100
     meta_rows = [
         [Paragraph("Report Generated", styles["TableCell"]),
          Paragraph(now_str, styles["TableCellBold"])],
         [Paragraph("Data Source", styles["TableCell"]),
          Paragraph(source_text, styles["TableCellBold"])],
+        [Paragraph("Model", styles["TableCell"]),
+         Paragraph(model_name, styles["TableCellBold"])],
+        [Paragraph("Decision Threshold", styles["TableCell"]),
+         Paragraph(f"High Risk if \u2265 {thr_pct:g}% (RISK_THRESHOLD = {RISK_THRESHOLD:g})",
+                   styles["TableCellBold"])],
         [Paragraph("Rows Scored", styles["TableCell"]),
          Paragraph(str(total), styles["TableCellBold"])],
     ]
@@ -202,7 +314,7 @@ def generate_batch_report(payload, source_label=None, row_cap=REPORT_ROW_CAP):
     story.append(Paragraph(
         f"<b>{high_risk}</b> of <b>{total}</b> rows ({high_share:.2f}%) were "
         f"classified as <b>High Risk</b>; <b>{low_risk}</b> as <b>Low Risk</b> "
-        f"using the screening threshold RISK_THRESHOLD = 0.05 "
+        f"using the screening threshold RISK_THRESHOLD = {RISK_THRESHOLD:g} "
         f"(probabilities rounded to the percent scale, e.g. 19.51%).",
         styles["Body"],
     ))
@@ -275,6 +387,20 @@ def generate_batch_report(payload, source_label=None, row_cap=REPORT_ROW_CAP):
         story.append(table)
     else:
         story.append(Paragraph("No rows were supplied in this batch payload.", styles["Body"]))
+
+    # ---- Graph attached at the bottom of every report -----------------
+    graph = _distribution_graph(chart, model_name)
+    if graph is not None:
+        story.append(Spacer(1, 5 * mm))
+        story.append(Paragraph("Risk Distribution Graph", styles["SectionHead"]))
+        story.append(graph)
+        story.append(Spacer(1, 2 * mm))
+        story.append(Paragraph(
+            f"Stroke probability distribution across all <b>{total}</b> scored "
+            f"rows. Amber bars (bins \u2265 {thr_pct:g}%) are the High Risk "
+            f"territory under the {model_name} model.",
+            styles["Small"],
+        ))
 
     story.append(Spacer(1, 6 * mm))
     story.append(HRFlowable(width="100%", thickness=0.3, color=BRAND_SLATE_LIGHT, spaceAfter=4))

@@ -18,7 +18,7 @@ Design decisions / conventions (documented in the endpoint contract):
   where ``p = model.predict_proba(...)[:, 1]`` from the cached pipeline in
   ``ml/pipeline.py`` (``load_pipeline()`` - joblib-load once, never ``.fit``).
 * ``risk_level`` uses the same mapping as the single route:
-  ``"High Risk" if p >= RISK_THRESHOLD else "Low Risk"`` (RISK_THRESHOLD = 0.05).
+  ``"High Risk" if p >= RISK_THRESHOLD else "Low Risk"`` (RISK_THRESHOLD = 0.04).
 * ``prediction`` in batch rows is the integer label ``int(p >= RISK_THRESHOLD)``
   (0/1) as required by the batch contract; the single route uses the textual
   "Stroke Risk"/"No Stroke Risk" for its own field.

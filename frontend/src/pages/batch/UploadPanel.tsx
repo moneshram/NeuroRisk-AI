@@ -172,7 +172,7 @@ export function UploadPanel({ busy, onFile }: UploadPanelProps) {
         <p className="text-xs uppercase tracking-[.25em] text-violet-300">
           Model prediction overview
         </p>
-        <h2 className="mt-1 text-xl font-semibold">Logistic Regression · 5% threshold</h2>
+        <h2 className="mt-1 text-xl font-semibold">Random Forest · 4% threshold</h2>
         <p className="mt-1 text-sm leading-6 text-slate-500">
           Each uploaded row is scored against the trained stroke-risk model, then labelled High or
           Low risk.
@@ -181,10 +181,10 @@ export function UploadPanel({ busy, onFile }: UploadPanelProps) {
         {/* Held-out test metrics (ml/artifacts/model_metadata.json) */}
         <div className="mt-5 grid grid-cols-2 gap-3">
           {[
-            { label: "ROC-AUC", value: "0.846", cls: "text-cyan-300" },
-            { label: "Accuracy", value: "74.8%", cls: "text-violet-300" },
-            { label: "Recall", value: "84%", cls: "text-emerald-300" },
-            { label: "Threshold", value: "≥ 5%", cls: "text-rose-300" },
+            { label: "ROC-AUC", value: "0.838", cls: "text-cyan-300" },
+            { label: "Accuracy", value: "68.7%", cls: "text-violet-300" },
+            { label: "Recall", value: "86%", cls: "text-emerald-300" },
+            { label: "Threshold", value: "≥ 4%", cls: "text-rose-300" },
           ].map((m) => (
             <div
               key={m.label}
@@ -232,7 +232,7 @@ export function UploadPanel({ busy, onFile }: UploadPanelProps) {
             </p>
             <p className="mt-1 text-xs leading-5 text-slate-400">
               stroke probability (%) → prediction 0/1 →{" "}
-              <span className="text-rose-300">High Risk if ≥ 5%</span>, else Low Risk.
+              <span className="text-rose-300">High Risk if ≥ 4%</span>, else Low Risk.
             </p>
           </div>
 
@@ -241,7 +241,7 @@ export function UploadPanel({ busy, onFile }: UploadPanelProps) {
               Trained
             </p>
             <p className="mt-1 text-xs leading-5 text-slate-400">
-              4,981 rows (4.98% positive) · stratified 80/20 split · retrained 2026-10-06.
+              4,981 rows (4.98% positive) · stratified 80/20 split · retrained 2026-10-10.
             </p>
           </div>
         </div>

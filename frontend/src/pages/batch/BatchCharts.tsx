@@ -27,8 +27,8 @@ const PALETTE = {
   cyan: "#22d3ee",
 };
 
-/** The model scores stroke risk at RISK_THRESHOLD = 0.05 → 5%. */
-const RISK_THRESHOLD_PCT = 5;
+/** The model scores stroke risk at RISK_THRESHOLD = 0.04 → 4% (Random Forest). */
+const RISK_THRESHOLD_PCT = 4;
 
 const AXIS_TICK = { fill: "#64748b", fontSize: 10 } as const;
 const AXIS_LINE = { stroke: "rgba(255,255,255,0.12)" } as const;
@@ -270,7 +270,7 @@ export function BatchCharts({ data }: { data: BatchChartData }) {
         <ChartCard
           eyebrow="Distribution"
           title="Probability histogram"
-          description="Rows per 10-point bin (0–100%). Bins at or above the 5% risk threshold are shown in rose."
+          description="Rows per 10-point bin (0–100%). Bins at or above the 4% risk threshold are shown in rose."
           ariaLabel="Histogram of predicted stroke probability in ten-point bins"
           height={250}
         >

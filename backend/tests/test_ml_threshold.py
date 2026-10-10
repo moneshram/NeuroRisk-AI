@@ -6,7 +6,7 @@ Because the base rate is ~5%, a fixed 0.5 cutoff classifies EVERY input as
 LOW RISK - on the held-out test set such a model detects 0 of 50 positive
 cases. The threshold is therefore derived from training out-of-fold
 predictions (max balanced accuracy / Youden's J) and centralized as
-RISK_THRESHOLD = 0.05 in ml/pipeline.py; app.py imports that single value.
+RISK_THRESHOLD = 0.04 in ml/pipeline.py; app.py imports that single value.
 
 These tests pin the behavior so the "always LOW RISK" bug cannot silently
 return, and guard the Low/High risk mapping for the two reference cases.
@@ -40,8 +40,8 @@ def _auth_headers(client):
     return {"Authorization": f"Bearer {token}"}
 
 
-# 80yo + hypertension + former smoker, glucose 180. Scores ~0.31 with the
-# current model: well above RISK_THRESHOLD=0.05, far below 0.5.
+# 80yo + hypertension + former smoker, glucose 180. Scores well above
+# RISK_THRESHOLD (0.04), far below 0.5, with the production model.
 HIGH_RISK_CASE = {
     "age": 80, "gender": "Male", "hypertension": 1, "heart_disease": 0,
     "ever_married": "Yes", "work_type": "Govt_job", "residence_type": "Rural",
@@ -59,7 +59,7 @@ LOW_RISK_CASE = {
 def test_risk_threshold_is_centralized_and_recall_oriented():
     # Derived from OOF balanced-accuracy optimum on the training split
     # (see ml/pipeline.py). Must stay centralized - app.py imports it.
-    assert RISK_THRESHOLD == 0.05
+    assert RISK_THRESHOLD == 0.04
 
 
 def test_high_risk_case_is_flagged_high_risk():

@@ -14,30 +14,32 @@ FEATURES = [
 
 # Decision threshold for the HIGH-risk class.
 #
-# The production model is trained on the real dataset
-# ~/Desktop/brain stroke/archive/full_data.csv (4981 rows, 4.98% positive -
-# a 19.1:1 imbalance) by train_stroke_model.py. The threshold is chosen from
-# OUT-OF-FOLD predictions on the TRAINING split only (the held-out test set is
-# never used for threshold selection): it maximises balanced accuracy, i.e.
-# Youden's J = sensitivity + specificity - 1, scanning 0.01..0.95 in 0.01
-# steps. Ties are broken toward higher sensitivity, then the lower threshold,
-# because for a screening tool a false negative (missed high-risk user) is the
-# costly error.
+# The production model is a RANDOM FOREST (RandomForest + none:
+# n_estimators=400, max_depth=10, min_samples_leaf=3) trained on the real
+# dataset ~/Desktop/brain stroke/archive/full_data.csv (4981 rows, 4.98%
+# positive - a 19.1:1 imbalance) by train_stroke_model.py with
+# `--only "RandomForest + none"` (user directive: Random Forest only).
+# The threshold is chosen from OUT-OF-FOLD predictions on the TRAINING split
+# only (the held-out test set is never used for threshold selection): it
+# maximises balanced accuracy, i.e. Youden's J = sensitivity + specificity -
+# 1, scanning 0.01..0.95 in 0.01 steps. Ties are broken toward higher
+# sensitivity, then the lower threshold, because for a screening tool a false
+# negative (missed high-risk user) is the costly error.
 #
-#   RISK_THRESHOLD = 0.05 -> sensitivity 0.840, specificity 0.743,
-#   ROC-AUC 0.846 on the held-out test set (8 false negatives of 50 positives).
-#   It flags roughly the top 25% of assessments, close to the point where
-#   sensitivity and specificity are balanced (OOF: 0.808 / 0.734 at 0.05;
-#   the balanced-accuracy peak is a genuine interior optimum, verified by
-#   sweep: 0.04 -> 0.770, 0.05 -> 0.771, 0.06 -> 0.757).
+#   RISK_THRESHOLD = 0.04 -> sensitivity 0.860, specificity 0.678,
+#   ROC-AUC 0.838 on the held-out test set (7 false negatives of 50
+#   positives). OOF: F2=0.382, ROC-AUC=0.819, Brier=0.044 (well-calibrated).
 #
-# At 0.5 the same model detects ZERO positive cases (all probabilities sit
+# At 0.5 the model detects ZERO positive cases (all probabilities sit far
 # below 0.5 because the base rate is ~5%), which is exactly the
 # "always LOW RISK" failure this constant exists to prevent.
 #
 # This is a screening threshold for a preliminary decision-support tool - not
 # a diagnosis, and not a clinically validated cut-off.
-RISK_THRESHOLD = 0.05
+#
+# Previous model (Logistic Regression, threshold 0.05) is backed up in
+# ml/artifacts/backup/ along with its metadata.
+RISK_THRESHOLD = 0.04
 
 _MODEL = None
 

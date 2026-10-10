@@ -592,6 +592,12 @@ def main(argv=None) -> int:
     parser.add_argument("--dataset", help="CSV path (or set STROKE_DATASET_PATH)")
     parser.add_argument("--skip-backup", action="store_true",
                         help="Do not copy the current artifact to backup/")
+    parser.add_argument(
+        "--only", metavar="FILTER",
+        help="Train ONLY configs matching this filter - either a model name "
+             "(e.g. 'RandomForest') or an exact config label "
+             "(e.g. 'RandomForest + none'). Cross-model selection is then "
+             "applied within the filtered set only.")
     args = parser.parse_args(argv)
 
     started = time.time()
@@ -634,6 +640,16 @@ def main(argv=None) -> int:
 
     # ---- Steps 6-7: train + compare ----------------------------------
     configs = make_configs()
+    if args.only:
+        needle = args.only.strip().lower()
+        configs = [
+            c for c in configs
+            if needle in (c["model"].lower(),
+                          f"{c['model']} + {c['imbalance']}".lower())
+        ]
+        if not configs:
+            known = sorted({f"{c['model']} + {c['imbalance']}" for c in make_configs()})
+            raise SystemExit(f"--only {args.only!r} matched no configuration. Known: {known}")
     results = []
     oof_cache = {}
     print(f"Running {len(configs)} model x imbalance configurations "
