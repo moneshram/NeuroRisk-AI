@@ -34,8 +34,8 @@ function mulberry32(seed: number) {
   };
 }
 
-const TEAL = new THREE.Color("#22d3ee");
-const TEAL_LIGHT = new THREE.Color("#67e8f9");
+const TEAL = new THREE.Color("#38bdf8");
+const TEAL_LIGHT = new THREE.Color("#7dd3fc");
 const LINK = new THREE.Color("#0891b2");
 
 /** Build a brain-ish point cloud + colour buffer. */
@@ -241,7 +241,7 @@ function NeuralFallback() {
         />
       ))}
       {nodes.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r={i % 6 === 0 ? 2.4 : 1.4} fill="#22d3ee" opacity="0.9" />
+        <circle key={i} cx={x} cy={y} r={i % 6 === 0 ? 2.4 : 1.4} fill="#38bdf8" opacity="0.9" />
       ))}
     </svg>
   );

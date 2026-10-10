@@ -96,7 +96,7 @@ function Icosahedron3D() {
       <mesh>
         <icosahedronGeometry args={[1, 0]} />
         <meshBasicMaterial
-          color="#22d3ee"
+          color="#38bdf8"
           wireframe
           transparent
           opacity={0.32}
@@ -109,7 +109,7 @@ function Icosahedron3D() {
         </bufferGeometry>
         <pointsMaterial
           size={0.045}
-          color="#67e8f9"
+          color="#7dd3fc"
           transparent
           opacity={0.9}
           sizeAttenuation
@@ -135,11 +135,11 @@ function IcosahedronFallback() {
         <line
           key={i}
           x1={pts[a][0]} y1={pts[a][1]} x2={pts[b][0]} y2={pts[b][1]}
-          stroke="#22d3ee" strokeWidth="0.8" opacity="0.5"
+          stroke="#38bdf8" strokeWidth="0.8" opacity="0.5"
         />
       ))}
       {pts.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r="2.2" fill="#67e8f9" opacity="0.9" />
+        <circle key={i} cx={x} cy={y} r="2.2" fill="#7dd3fc" opacity="0.9" />
       ))}
     </svg>
   );

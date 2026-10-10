@@ -79,25 +79,25 @@ export default function Welcome() {
 
       {/* ---------- Nav ---------- */}
       <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 pt-6">
-        <button onClick={() => navigate("/welcome")} className="flex items-center gap-2.5 bg-transparent">
-          <span className="grid h-9 w-9 place-items-center rounded-xl border border-cyan-300/25 bg-cyan-400/10">
-            <BrainCircuit size={18} className="text-cyan-300" />
+        <button onClick={() => navigate("/welcome")} className="flex items-center gap-3 bg-transparent">
+          <span className="grid h-12 w-12 place-items-center rounded-xl border border-cyan-300/25 bg-cyan-400/10">
+            <BrainCircuit size={24} className="text-cyan-300" />
           </span>
           <span className="text-left">
-            <b className="block text-sm font-semibold tracking-tight">NeuroRisk AI</b>
-            <small className="block text-[11px] text-slate-400">Stroke Classification</small>
+            <b className="block text-xl font-semibold tracking-tight">NeuroRisk AI</b>
+            <small className="block text-sm text-slate-400">Stroke Classification</small>
           </span>
         </button>
-        <nav className="flex items-center gap-2">
+        <nav className="flex items-center gap-2.5">
           <button
             onClick={() => navigate("/login")}
-            className="rounded-xl px-4 py-2 text-sm text-slate-300 transition-colors hover:text-white"
+            className="rounded-xl px-5 py-2.5 text-base text-slate-300 transition-colors hover:text-white"
           >
             Sign in
           </button>
           <button
             onClick={() => navigate("/register")}
-            className="rounded-xl bg-gradient-to-r from-cyan-400 to-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition-transform hover:scale-[1.03]"
+            className="rounded-xl brand-cta px-5 py-2.5 text-base font-semibold transition-transform hover:scale-[1.03]"
           >
             Get started
           </button>
@@ -109,7 +109,7 @@ export default function Welcome() {
         <motion.p
           {...fadeUp}
           transition={{ ...fadeUp.transition, delay: 0 }}
-          className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-400/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300"
+          className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-400/5 px-4 py-1.5 text-sm font-semibold uppercase tracking-[0.25em] text-cyan-300"
         >
           <Sparkles size={13} /> Clinical-grade stroke risk screening
         </motion.p>
@@ -135,14 +135,14 @@ export default function Welcome() {
         >
           <button
             onClick={() => navigate("/register")}
-            className="group flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-sky-500 px-7 py-3.5 text-sm font-semibold text-slate-950 shadow-[0_0_40px_rgba(34,211,238,0.25)] transition-transform hover:scale-[1.03]"
+            className="group flex items-center gap-2 rounded-2xl brand-cta px-7 py-3.5 text-base font-semibold transition-transform hover:scale-[1.03]"
           >
             Start free assessment
             <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
           </button>
           <button
             onClick={() => navigate("/login")}
-            className="rounded-2xl border border-white/10 bg-white/[0.04] px-7 py-3.5 text-sm font-medium text-slate-200 backdrop-blur-xl transition-colors hover:bg-white/[0.07]"
+            className="rounded-2xl border border-white/10 bg-white/[0.04] px-7 py-3.5 text-base font-medium text-slate-200 backdrop-blur-xl transition-colors hover:bg-white/[0.07]"
           >
             I already have an account
           </button>
@@ -157,8 +157,8 @@ export default function Welcome() {
           {STATS.map((s) => (
             <div key={s.label} className="bg-transparent px-5 py-6 text-center">
               <dt className="text-2xl font-semibold tracking-tight text-cyan-300 sm:text-3xl">{s.value}</dt>
-              <dd className="mt-1 text-xs font-medium uppercase tracking-wider text-slate-400">{s.label}</dd>
-              <dd className="mx-auto mt-1.5 max-w-[10rem] text-[11px] leading-snug text-slate-500">{s.note}</dd>
+              <dd className="mt-1 text-sm font-medium uppercase tracking-wider text-slate-400">{s.label}</dd>
+              <dd className="mx-auto mt-1.5 max-w-[10rem] text-xs leading-snug text-slate-500">{s.note}</dd>
             </div>
           ))}
         </motion.dl>
@@ -224,7 +224,7 @@ export default function Welcome() {
               })}
             </ul>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-[#07111f]/80 p-6">
+          <div className="rounded-2xl border border-white/10 bg-[#07204f]/80 p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Decision rule</p>
             <p className="mt-3 text-lg font-semibold text-white">
               High Risk if probability ≥ 4%
@@ -250,7 +250,7 @@ export default function Welcome() {
           {...fadeUp}
           transition={{ ...fadeUp.transition, delay: 0.07 }}
           onClick={() => navigate("/register")}
-          className="mt-7 rounded-2xl bg-gradient-to-r from-cyan-400 to-sky-500 px-8 py-3.5 text-sm font-semibold text-slate-950 shadow-[0_0_40px_rgba(34,211,238,0.25)] transition-transform hover:scale-[1.03]"
+          className="mt-7 rounded-2xl brand-cta px-8 py-3.5 text-base font-semibold transition-transform hover:scale-[1.03]"
         >
           Create your free account
         </motion.button>

@@ -12,43 +12,46 @@
     "Segoe UI",
     sans-serif;
   color: #e8f0ff;
-  background: #050b14; /* overridden by html rule below; kept as fallback */
+  /* NOTE: do NOT set `background` here — the :root shorthand would beat the
+     `html` rule below (specificity 0,1,0 > 0,0,1) and wipe its background-image.
+     The canvas background lives on `html`. */
   font-synthesis: none;
+  /* ── Primary button tokens — vivid azure gradient (matches the reference
+     design: bright royal-blue buttons, white ink) ── */
+  --btn-from: #4d9bff; /* light azure (top of gradient) */
+  --btn-to: #1a5fd9; /* deep royal blue (bottom) */
+  --btn-ink: #ffffff;
+  --btn-edge: rgba(255, 255, 255, 0.22); /* 1px inner refraction border */
+  --btn-shadow: 0 10px 30px -10px rgba(37, 99, 235, 0.55); /* blue-tinted */
 }
 * {
   box-sizing: border-box;
 }
 body {
+  /* transparent: lets the -z-10 fixed layers (liquid chrome, 3D brain)
+     show through. Page background comes from the html canvas background
+     (noise + clinical teal gradients + vignette). */
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background:
-    radial-gradient(
-      circle at 20% 10%,
-      rgba(55, 128, 255, 0.12),
-      transparent 30%
-    ),
-    radial-gradient(
-      circle at 80% 20%,
-      rgba(146, 70, 255, 0.12),
-      transparent 30%
-    ),
-    #050b14;
+  background: transparent;
+  transition: background-color 240ms ease, color 240ms ease;
 }
 button,
 input,
 select {
   color-scheme: dark;
   color: #e2e8f0;
-  background-color: rgba(15, 23, 42, 0.92);
+  background-color: rgba(6, 24, 58, 0.92); /* navy, matches canvas */
 }
 .glass {
   @apply border border-white/10 bg-white/[0.045] backdrop-blur-2xl shadow-2xl;
 }
 .glow-border {
+  /* Blue-tinted elevation ring, like the reference's card edges. */
   box-shadow:
-    0 0 0 1px rgba(87, 160, 255, 0.12),
-    0 0 45px rgba(69, 120, 255, 0.09);
+    0 0 0 1px rgba(56, 189, 248, 0.14),
+    0 20px 50px -20px rgba(2, 10, 40, 0.85);
 }
 .field {
   @apply w-full rounded-2xl border border-white/10
@@ -80,8 +83,58 @@ select {
 .label {
   @apply mb-2 block text-xs font-semibold uppercase tracking-widest text-slate-400;
 }
+/* Primary action — muted teal gradient on graphite, driven by --btn-* tokens
+   on :root so every primary button shares one color story. Liquid-glass
+   treatment: 1px inner refraction border + tinted shadow (no neon glow). */
 .primary-btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-5 py-3 font-semibold text-slate-950 transition duration-300 hover:shadow-[0_0_30px_rgba(56,189,248,.25)] disabled:cursor-not-allowed disabled:opacity-50;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.875rem;
+  padding: 0.9rem 1.6rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  min-height: 52px;
+  color: var(--btn-ink);
+  background-image: linear-gradient(180deg, var(--btn-from), var(--btn-to));
+  box-shadow: inset 0 1px 0 var(--btn-edge), var(--btn-shadow);
+  transition: box-shadow 0.3s ease, filter 0.3s ease, transform 0.15s ease;
+}
+.primary-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+/* Tactile push — physical feedback on press (taste skill rule 5). */
+.primary-btn:active:not(:disabled) {
+  filter: brightness(0.95);
+  transform: translateY(1px);
+}
+.primary-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+/* Confirmation state after a successful save (Settings). */
+.btn-saved,
+.primary-btn.btn-saved {
+  color: #ecfdf5;
+  background-image: linear-gradient(180deg, #1f8a63, #146247);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 10px 30px -12px rgba(20, 98, 71, 0.55);
+}
+/* Marketing/CTA buttons (Welcome) — same token gradient as .primary-btn,
+   but keeps its own sizing utilities. */
+.brand-cta {
+  background-image: linear-gradient(180deg, var(--btn-from), var(--btn-to));
+  color: var(--btn-ink);
+  box-shadow: inset 0 1px 0 var(--btn-edge), var(--btn-shadow);
+  transition: filter 0.3s ease, transform 0.15s ease;
+}
+.brand-cta:hover {
+  filter: brightness(1.08);
+}
+.brand-cta:active {
+  filter: brightness(0.95);
+  transform: translateY(1px);
 }
 .ghost-btn {
   @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 font-semibold text-white transition duration-300 hover:bg-white/[0.08];
@@ -136,22 +189,27 @@ select {
 /* -------------------------------------------------------------------------- */
 
 html {
+  /* Global readability: every Tailwind rem size scales from here (17.5px
+     vs default 16px ≈ +9% type, spacing, buttons, everywhere). */
+  font-size: 17.5px;
   /* Canvas background (painted BELOW all content, including -z-10 fixed
      layers). The radial gradients live here — NOT on body — because body's
      background paints at CSS step 3, which would cover -z-10 fixed layers
      (liquid chrome, 3D brain) that paint at step 2. */
-  background:
-    radial-gradient(
-      circle at 20% 10%,
-      rgba(55, 128, 255, 0.12),
-      transparent 30%
-    ),
-    radial-gradient(
-      circle at 80% 20%,
-      rgba(146, 70, 255, 0.12),
-      transparent 30%
-    ),
-    #050b14;
+  /* Deep navy base with a bright royal-blue center glow — matches the
+     reference design (vivid cobalt, cyan accents). */
+  background-color: #04183d;
+  background-image:
+    /* subtle film-grain texture */
+    url("/assets/noise.svg"),
+    /* bright royal-blue glow behind the hero/brain */
+    radial-gradient(ellipse 80% 55% at 50% 8%, rgba(37, 115, 235, 0.75), transparent 70%),
+    radial-gradient(ellipse 55% 45% at 50% 40%, rgba(24, 92, 210, 0.5), transparent 72%),
+    /* soft side lifts like the reference corners */
+    radial-gradient(ellipse 45% 40% at 12% 55%, rgba(20, 85, 200, 0.35), transparent 70%),
+    radial-gradient(ellipse 45% 40% at 88% 60%, rgba(18, 78, 190, 0.3), transparent 70%),
+    /* deep navy vignette at the edges */
+    radial-gradient(circle at 50% 50%, transparent 48%, rgba(2, 10, 32, 0.7) 100%);
   transition: background-color 240ms ease;
 }
 
@@ -169,18 +227,18 @@ body {
 }
 
 .nav-shell {
-  background: rgba(9, 19, 33, 0.95);
+  background: rgba(4, 18, 46, 0.95); /* navy, matches canvas */
 }
 
 .result-core {
-  background: #07111f;
+  background: #07204f; /* navy panel, lifted from canvas #04183d */
 }
 
 .chart-surface {
   background: rgba(255, 255, 255, 0.02);
   --chart-grid: rgba(255,255,255,.07);
   --chart-label: rgb(100 116 139);
-  --chart-point-fill: #07111f;
+  --chart-point-fill: #07204f;
 }
 
 .theme-option {
@@ -208,10 +266,13 @@ body {
 /* Light theme */
 html[data-theme="light"] {
   color-scheme: light;
-  background:
-    radial-gradient(circle at 20% 10%, rgba(55, 128, 255, 0.10), transparent 30%),
-    radial-gradient(circle at 80% 20%, rgba(146, 70, 255, 0.08), transparent 30%),
-    #f4f7fb;
+  background-color: #f4f7fb;
+  background-image:
+    /* same subtle film-grain texture for consistency across themes */
+    url("/assets/noise.svg"),
+    /* lighter clinical teal accents (low opacity so it stays airy) */
+    radial-gradient(circle at 15% 25%, rgba(34, 211, 238, 0.04), transparent 35%),
+    radial-gradient(circle at 85% 75%, rgba(8, 145, 178, 0.03), transparent 40%);
 }
 
 html[data-theme="light"] body {
@@ -434,8 +495,8 @@ html[data-theme="light"] .theme-option-active .theme-option-icon {
 
 
 /* Login wordmark: plain bold branding in light mode, adaptive branding in dark mode. */
-.auth-brand-title { color:#f8fafc; font-size:1.05rem; line-height:1.1; font-weight:800; letter-spacing:-.02em; }
-.auth-brand-subtitle { margin-top:3px; color:#64748b; font-size:.72rem; line-height:1.1; font-weight:500; }
+.auth-brand-title { color:#f8fafc; font-size:1.3rem; line-height:1.1; font-weight:800; letter-spacing:-.02em; }
+.auth-brand-subtitle { margin-top:3px; color:#64748b; font-size:.9rem; line-height:1.1; font-weight:500; }
 .auth-brand-mark { background:rgba(34,211,238,.10); color:#67e8f9; border:1px solid rgba(34,211,238,.12); }
 html[data-theme="light"] .auth-brand-title { color:#172033 !important; }
 html[data-theme="light"] .auth-brand-subtitle { color:#64748b !important; }
@@ -507,7 +568,7 @@ html[data-theme="light"] .reset-method small { color:#64748b; }
 /* Dashboard gauge/chart contrast: dark values stay unchanged; light mode gets readable tracks and points. */
 .dashboard-gauge-track { background: var(--dashboard-gauge-track); }
 .dashboard-chart-point { fill: var(--dashboard-chart-point-fill); stroke: var(--dashboard-chart-point-stroke); }
-:root { --dashboard-gauge-track: rgba(255,255,255,.07); --dashboard-chart-point-fill: #07111f; --dashboard-chart-point-stroke: #22d3ee; }
+:root { --dashboard-gauge-track: rgba(255,255,255,.07); --dashboard-chart-point-fill: #07204f; --dashboard-chart-point-stroke: #38bdf8; }
 html[data-theme="light"] { --dashboard-gauge-track: rgba(15,23,42,.10); --dashboard-chart-point-fill: #0891b2; --dashboard-chart-point-stroke: #ffffff; }
 
 

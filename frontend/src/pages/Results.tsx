@@ -322,7 +322,7 @@ export default function Results() {
                   w-36
                   place-items-center
                   rounded-full
-                  bg-[#07111f]
+                  bg-[#07204f]
                   shadow-[inset_0_0_40px_rgba(34,211,238,0.05)]
                   sm:h-44
                   sm:w-44

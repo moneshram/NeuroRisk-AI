@@ -79,7 +79,7 @@ function ChartTooltip(props: { active?: boolean; label?: unknown; payload?: TipE
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-[#0b1424]/95 px-3 py-2 text-xs shadow-2xl backdrop-blur">
+    <div className="rounded-xl border border-white/10 bg-[#07204f]/95 px-3 py-2 text-xs shadow-2xl backdrop-blur">
       {props.label !== undefined && props.label !== null && (
         <p className="mb-1 font-semibold text-slate-200">{String(props.label)}</p>
       )}

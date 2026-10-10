@@ -46,7 +46,7 @@ export function AuthSplit({ children }: { children: React.ReactNode }) {
         </div>
         <Link
           to="/welcome"
-          className="inline-flex w-fit items-center gap-1.5 text-sm text-slate-400 transition-colors hover:text-white"
+          className="inline-flex w-fit items-center gap-1.5 text-base text-slate-400 transition-colors hover:text-white"
         >
           <ArrowLeft size={15} /> Overview
         </Link>
@@ -64,7 +64,7 @@ export function AuthSplit({ children }: { children: React.ReactNode }) {
           </h2>
           <ul className="mt-8 space-y-4">
             {POINTS.map((p) => (
-              <li key={p.text} className="flex max-w-sm items-start gap-3 text-sm leading-relaxed text-slate-400">
+              <li key={p.text} className="flex max-w-sm items-start gap-3 text-base leading-relaxed text-slate-400">
                 <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-cyan-300/20 bg-cyan-400/10">
                   <p.icon size={14} className="text-cyan-300" />
                 </span>
@@ -73,7 +73,7 @@ export function AuthSplit({ children }: { children: React.ReactNode }) {
             ))}
           </ul>
         </motion.div>
-        <p className="max-w-xs text-xs leading-relaxed text-slate-500">
+        <p className="max-w-xs text-sm leading-relaxed text-slate-500">
           Screening support only — not a diagnosis. NeuroRisk AI backs clinical judgement,
           it never replaces it.
         </p>

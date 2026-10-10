@@ -18,13 +18,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
             onClick={() => navigate("/assess")}
             className="brand-button flex items-center gap-2.5 bg-transparent sm:gap-3"
           >
-            <span className="brand-mark grid h-9 w-9 shrink-0 place-items-center rounded-2xl sm:h-10 sm:w-10">
-              <BrainCircuit size={20} />
+            <span className="brand-mark grid h-11 w-11 shrink-0 place-items-center rounded-2xl sm:h-12 sm:w-12">
+              <BrainCircuit size={22} />
             </span>
 
             <span className="brand-copy hidden bg-transparent text-left sm:block">
-              <b className="brand-title block text-sm font-semibold">NeuroRisk AI</b>
-              <small className="brand-subtitle">Stroke Classification</small>
+              <b className="brand-title block text-lg font-semibold">NeuroRisk AI</b>
+              <small className="brand-subtitle text-sm">Stroke Classification</small>
             </span>
           </motion.button>
 

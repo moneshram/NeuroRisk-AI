@@ -56,7 +56,7 @@ export default function AdminLogin() {
     <Screen>
       <AuthSplit>
         <div className="mx-auto w-full max-w-md">
-          <motion.div ref={cardRef} initial={{ opacity: 0, scale: .96 }} animate={{ opacity: 1, scale: 1 }} className="rounded-[2rem] border border-violet-400/20 bg-[#080912]/90 p-6 shadow-[0_0_80px_rgba(124,58,237,.1)] sm:p-8">
+          <motion.div ref={cardRef} initial={{ opacity: 0, scale: .96 }} animate={{ opacity: 1, scale: 1 }} className="rounded-[2rem] border border-violet-400/20 bg-[#04183d]/90 p-6 shadow-[0_0_80px_rgba(124,58,237,.1)] sm:p-8">
             <div className="mb-8 text-center">
               <div className="flex items-center justify-center gap-3">
                 <span className="auth-brand-mark grid h-12 w-12 place-items-center rounded-2xl"><BrainCircuit size={25} /></span>
@@ -103,7 +103,7 @@ export default function AdminLogin() {
                 </div>
                 {errors.password && <p id="al-password-error" role="alert" className="mt-2 flex items-center gap-1.5 text-xs text-rose-300">{errors.password}</p>}
               </div>
-              <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: .98 }} disabled={busy} className="primary-btn w-full from-violet-400 to-indigo-500">
+              <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: .98 }} disabled={busy} className="primary-btn w-full">
                 {busy ? "Verifying…" : "Enter secure console"}
               </motion.button>
             </form>
