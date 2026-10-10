@@ -139,6 +139,57 @@ select {
 .ghost-btn {
   @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 font-semibold text-white transition duration-300 hover:bg-white/[0.08];
 }
+
+/* ── Blue blob hover glow (secondary buttons only) ──────────────────────
+   Two drifting royal-blue/cyan blobs fade in behind the label on hover.
+   Pseudo-element + transform/opacity only; isolation keeps it clipped
+   inside the button's stacking context. Attach via .ghost-btn (global)
+   or the .blob-glow class on one-off secondary buttons. */
+.ghost-btn,
+.blob-glow {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.ghost-btn::before,
+.blob-glow::before {
+  content: "";
+  position: absolute;
+  inset: -45%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 32% 40%, rgba(77, 155, 255, 0.38), transparent 46%),
+    radial-gradient(circle at 70% 62%, rgba(56, 189, 248, 0.3), transparent 42%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.ghost-btn:hover::before,
+.blob-glow:hover::before {
+  opacity: 1;
+  animation: blob-drift 3.2s ease-in-out infinite alternate;
+}
+@keyframes blob-drift {
+  0% {
+    transform: translate(-4%, -3%) scale(1);
+  }
+  100% {
+    transform: translate(4%, 3%) scale(1.12);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ghost-btn:hover::before,
+  .blob-glow:hover::before {
+    animation: none;
+  }
+}
+/* Soften the blobs on the light theme so they don't muddy white surfaces. */
+html[data-theme="light"] .ghost-btn::before,
+html[data-theme="light"] .blob-glow::before {
+  background:
+    radial-gradient(circle at 32% 40%, rgba(37, 99, 235, 0.16), transparent 46%),
+    radial-gradient(circle at 70% 62%, rgba(14, 116, 144, 0.12), transparent 42%);
+}
 /* Login / icon input alignment */
 .relative > .field {
   padding-left: 3rem !important;

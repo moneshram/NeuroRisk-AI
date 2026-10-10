@@ -91,7 +91,7 @@ export default function Welcome() {
         <nav className="flex items-center gap-2.5">
           <button
             onClick={() => navigate("/login")}
-            className="rounded-xl px-5 py-2.5 text-base text-slate-300 transition-colors hover:text-white"
+            className="blob-glow rounded-xl border border-white/10 bg-white/[0.04] px-5 py-2.5 text-base text-slate-300 transition-colors hover:text-white"
           >
             Sign in
           </button>
@@ -142,7 +142,7 @@ export default function Welcome() {
           </button>
           <button
             onClick={() => navigate("/login")}
-            className="rounded-2xl border border-white/10 bg-white/[0.04] px-7 py-3.5 text-base font-medium text-slate-200 backdrop-blur-xl transition-colors hover:bg-white/[0.07]"
+            className="blob-glow rounded-2xl border border-white/10 bg-white/[0.04] px-7 py-3.5 text-base font-medium text-slate-200 backdrop-blur-xl transition-colors hover:bg-white/[0.07]"
           >
             I already have an account
           </button>
