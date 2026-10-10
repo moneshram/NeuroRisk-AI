@@ -32,6 +32,8 @@ const RISK_THRESHOLD_PCT = 4;
 
 const AXIS_TICK = { fill: "#64748b", fontSize: 10 } as const;
 const AXIS_LINE = { stroke: "rgba(255,255,255,0.12)" } as const;
+/** Axis titles: explain what the numbers/categories on each axis mean. */
+const AXIS_LABEL_STYLE = { fill: "#94a3b8", fontSize: 10 } as const;
 /** Falls back to white/10-ish when the theme variable is unavailable. */
 const GRID_STYLE = { stroke: "rgba(255,255,255,0.09)" } as const;
 const TOOLTIP_CURSOR = { fill: "rgba(255,255,255,0.05)" } as const;
@@ -139,7 +141,18 @@ function ChartCard({
   );
 }
 
-function RateBarChart({ rows, title, description }: { rows: RiskGroup[]; title: string; description: string }) {
+function RateBarChart({
+  rows,
+  title,
+  description,
+  xLabel,
+}: {
+  rows: RiskGroup[];
+  title: string;
+  description: string;
+  /** What the x-axis categories represent (e.g. "Hypertension status"). */
+  xLabel: string;
+}) {
   const data = rows.map((row) => ({
     ...row,
     label: row.label === "0" ? "No" : row.label === "1" ? "Yes" : row.label,
@@ -150,10 +163,10 @@ function RateBarChart({ rows, title, description }: { rows: RiskGroup[]; title: 
       eyebrow="High-risk rate"
       title={title}
       description={description}
-      ariaLabel={`${title}: high-risk rate percentage by category`}
+      ariaLabel={`${title}: high-risk rate percentage by ${xLabel}`}
       height={230}
     >
-      <BarChart data={data} margin={{ top: 8, right: 8, left: -18, bottom: 4 }}>
+      <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
         <CartesianGrid vertical={false} stroke={GRID_STYLE.stroke} style={GRID_STYLE} />
         <XAxis
           dataKey="label"
@@ -164,6 +177,7 @@ function RateBarChart({ rows, title, description }: { rows: RiskGroup[]; title: 
           tick={AXIS_TICK}
           tickLine={false}
           axisLine={AXIS_LINE}
+          label={{ value: xLabel, position: "insideBottom", offset: -2, style: AXIS_LABEL_STYLE }}
         />
         <YAxis
           domain={[0, 100]}
@@ -172,6 +186,7 @@ function RateBarChart({ rows, title, description }: { rows: RiskGroup[]; title: 
           axisLine={false}
           tickFormatter={(value: number) => `${value}%`}
           width={54}
+          label={{ value: "High-risk rate (%)", angle: -90, position: "left", style: AXIS_LABEL_STYLE }}
         />
         <Tooltip content={<ChartTooltip />} cursor={TOOLTIP_CURSOR} />
         <Bar
@@ -294,7 +309,7 @@ export function BatchCharts({ data }: { data: BatchChartData }) {
             </div>
           }
         >
-          <BarChart data={histogram} margin={{ top: 8, right: 8, left: -18, bottom: 4 }}>
+          <BarChart data={histogram} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
             <CartesianGrid vertical={false} stroke={GRID_STYLE.stroke} style={GRID_STYLE} />
             <XAxis
               dataKey="label"
@@ -302,6 +317,12 @@ export function BatchCharts({ data }: { data: BatchChartData }) {
               tick={{ ...AXIS_TICK, fontSize: 9 }}
               tickLine={false}
               axisLine={AXIS_LINE}
+              label={{
+                value: "Predicted stroke probability bin (%) — e.g. 10–20 = 10% to 20%",
+                position: "insideBottom",
+                offset: -2,
+                style: AXIS_LABEL_STYLE,
+              }}
             />
             <YAxis
               tick={AXIS_TICK}
@@ -309,6 +330,7 @@ export function BatchCharts({ data }: { data: BatchChartData }) {
               axisLine={false}
               allowDecimals={false}
               width={54}
+              label={{ value: "Number of rows", angle: -90, position: "left", style: AXIS_LABEL_STYLE }}
             />
             <Tooltip content={<ChartTooltip />} cursor={TOOLTIP_CURSOR} />
             <Bar
@@ -349,7 +371,7 @@ export function BatchCharts({ data }: { data: BatchChartData }) {
           </div>
         }
       >
-        <ScatterChart margin={{ top: 8, right: 12, left: -14, bottom: 4 }}>
+        <ScatterChart margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
           <CartesianGrid stroke={GRID_STYLE.stroke} style={GRID_STYLE} />
           <XAxis
             type="number"
@@ -359,6 +381,7 @@ export function BatchCharts({ data }: { data: BatchChartData }) {
             tick={AXIS_TICK}
             tickLine={false}
             axisLine={AXIS_LINE}
+            label={{ value: "Age (years)", position: "insideBottom", offset: -2, style: AXIS_LABEL_STYLE }}
           />
           <YAxis
             type="number"
@@ -370,6 +393,12 @@ export function BatchCharts({ data }: { data: BatchChartData }) {
             axisLine={false}
             tickFormatter={(value: number) => `${value}%`}
             width={54}
+            label={{
+              value: "Predicted stroke probability (%)",
+              angle: -90,
+              position: "left",
+              style: AXIS_LABEL_STYLE,
+            }}
           />
           <Tooltip
             content={<ChartTooltip />}
@@ -395,16 +424,19 @@ export function BatchCharts({ data }: { data: BatchChartData }) {
           rows={data.risk_by_hypertension}
           title="Risk by hypertension"
           description="High-risk rate for hypertensive vs non-hypertensive rows."
+          xLabel="Hypertension status (No / Yes)"
         />
         <RateBarChart
           rows={data.risk_by_smoking}
           title="Risk by smoking status"
           description="High-risk rate grouped by smoking status."
+          xLabel="Smoking status category"
         />
         <RateBarChart
           rows={data.risk_by_work_type}
           title="Risk by work type"
           description="High-risk rate grouped by occupation category."
+          xLabel="Work type (occupation)"
         />
       </div>
     </div>

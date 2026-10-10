@@ -201,11 +201,11 @@ def _distribution_graph(chart, model_name):
     if not histogram:
         return None
 
-    width, height = 170 * mm, 70 * mm
+    width, height = 170 * mm, 76 * mm
     drawing = Drawing(width, height)
-    left, bottom = 34.0, 30.0
+    left, bottom = 34.0, 44.0
     plot_w = width - left - 14.0
-    plot_h = height - bottom - 34.0
+    plot_h = height - bottom - 58.0
     thr_pct = RISK_THRESHOLD * 100
 
     amber = _risk_color("High Risk")
@@ -220,6 +220,9 @@ def _distribution_graph(chart, model_name):
         f"Rows per 10-point bin (0\u2013100%) \u00b7 {model_name} \u00b7 "
         f"bins at or above the {thr_pct:g}% threshold are shown in amber.",
         fontName="Helvetica", fontSize=7.5, fillColor=slate))
+    # Axis titles: what the numbers on each axis mean
+    drawing.add(String(4, height - 42, "Number of rows",
+                       fontName="Helvetica-Bold", fontSize=6.5, fillColor=slate))
 
     counts = [max(0, int(b.get("count") or 0)) for b in histogram]
     y_max = max(max(counts), 1)
@@ -258,6 +261,13 @@ def _distribution_graph(chart, model_name):
         drawing.add(String(x + bar_w / 2.0, bottom - 11, label,
                            fontName="Helvetica", fontSize=6.2, fillColor=slate,
                            textAnchor="middle"))
+
+    # X-axis title: what the 0-10 / 10-20 numbers represent
+    drawing.add(String(
+        left + plot_w / 2.0, bottom - 24,
+        "Predicted stroke probability bin (%) \u2014 e.g. 10\u201320 = 10% to 20%",
+        fontName="Helvetica", fontSize=6.5, fillColor=slate,
+        textAnchor="middle"))
 
     # Dashed threshold marker
     tx = left + plot_w * RISK_THRESHOLD
@@ -358,6 +368,11 @@ def _age_probability_scatter(series, model_name, thr_pct):
     left, bottom = 44.0, 34.0
     plot_w = width - left - 16.0
     plot_h = height - bottom - 46.0
+    plot_top = bottom + plot_h
+    # Y-axis title: what the vertical percentages mean
+    drawing.add(String(4, plot_top + 6, "Predicted stroke probability (%)",
+                       fontName="Helvetica-Bold", fontSize=6.5,
+                       fillColor=BRAND_SLATE_LIGHT))
     age_min, age_max = min(ages), max(ages)
     if age_max <= age_min:
         age_max = age_min + 1.0
@@ -417,7 +432,8 @@ def _age_probability_scatter(series, model_name, thr_pct):
     return drawing
 
 
-def _group_rate_chart(series, heading, model_name, thr_pct, label_map=None):
+def _group_rate_chart(series, heading, model_name, thr_pct, label_map=None,
+                      x_title=None):
     """Horizontal bar chart of the high-risk rate per group (dashboard cards
     "Risk by hypertension / smoking status / work type")."""
     if not series:
@@ -426,7 +442,7 @@ def _group_rate_chart(series, heading, model_name, thr_pct, label_map=None):
 
     width = 170 * mm
     row_h = 9.0 * mm
-    base_y, top_pad = 16.0, 34.0
+    base_y, top_pad = 30.0, 46.0
     height = top_pad + len(series) * row_h + base_y
     drawing = Drawing(width, height)
     drawing.add(String(4, height - 13, heading,
@@ -437,10 +453,14 @@ def _group_rate_chart(series, heading, model_name, thr_pct, label_map=None):
         f"High-risk rate per group (% of rows at or above the {thr_pct:g}% "
         f"threshold) \u00b7 {model_name}.",
         fontName="Helvetica", fontSize=7.5, fillColor=BRAND_SLATE_LIGHT))
+    # Axis titles: what the numbers/categories on each axis mean
+    drawing.add(String(4, height - top_pad + 5, "High-risk rate (%)",
+                       fontName="Helvetica-Bold", fontSize=6.5,
+                       fillColor=BRAND_SLATE_LIGHT))
 
     left, right = 132.0, 68.0
     plot_w = width - left - right
-    plot_top = height - 34.0
+    plot_top = height - top_pad
 
     for pct in (0, 25, 50, 75, 100):
         x = left + plot_w * pct / 100.0
@@ -451,6 +471,10 @@ def _group_rate_chart(series, heading, model_name, thr_pct, label_map=None):
                            textAnchor="middle"))
     drawing.add(Line(left, base_y, left, plot_top,
                      strokeColor=BRAND_NAVY, strokeWidth=0.8))
+    if x_title:
+        drawing.add(String(left + plot_w / 2.0, base_y - 24, x_title,
+                           fontName="Helvetica-Bold", fontSize=6.5,
+                           fillColor=BRAND_SLATE_LIGHT, textAnchor="middle"))
 
     slot = (plot_top - base_y) / len(series)
     bar_h = slot * 0.5
@@ -684,13 +708,15 @@ def generate_batch_report(payload, source_label=None, row_cap=REPORT_ROW_CAP):
 
     group_charts = (
         ("Risk by Hypertension", chart.get("risk_by_hypertension"),
-         {"0": "No", "1": "Yes"}),
-        ("Risk by Smoking Status", chart.get("risk_by_smoking"), None),
-        ("Risk by Work Type", chart.get("risk_by_work_type"), None),
+         {"0": "No", "1": "Yes"}, "Hypertension status (No / Yes)"),
+        ("Risk by Smoking Status", chart.get("risk_by_smoking"), None,
+         "Smoking status category"),
+        ("Risk by Work Type", chart.get("risk_by_work_type"), None,
+         "Work type (occupation)"),
     )
-    for heading, series, label_map in group_charts:
+    for heading, series, label_map, x_title in group_charts:
         rate_chart = _group_rate_chart(series, heading, model_name, thr_pct,
-                                       label_map=label_map)
+                                       label_map=label_map, x_title=x_title)
         if rate_chart is None:
             continue
         story.append(Spacer(1, 4 * mm))
