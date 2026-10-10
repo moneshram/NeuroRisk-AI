@@ -52,7 +52,7 @@ export default function Dashboard() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: .98 }}
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/assess")}
               className="primary-btn w-full px-4 py-2.5 text-sm sm:w-fit"
             >
               New assessment <ArrowRight size={16} />

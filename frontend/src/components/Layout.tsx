@@ -15,7 +15,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/assess")}
             className="brand-button flex items-center gap-2.5 bg-transparent sm:gap-3"
           >
             <span className="brand-mark grid h-9 w-9 shrink-0 place-items-center rounded-2xl sm:h-10 sm:w-10">

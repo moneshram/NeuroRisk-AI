@@ -130,7 +130,7 @@ export default function AssessmentHistory() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/assess")}
               className="primary-btn w-full px-4 py-2.5 text-sm sm:w-fit"
             >
               New assessment <ArrowRight size={16} />
@@ -177,7 +177,7 @@ export default function AssessmentHistory() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/assess")}
               className="primary-btn mt-7 w-full"
             >
               Start New Assessment <ArrowRight size={16} />

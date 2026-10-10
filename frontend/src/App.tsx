@@ -35,8 +35,9 @@ export default function App() {
       <LiquidChromeLayer />
       <MotionConfig reducedMotion="user">
       <Routes>
-        <Route path="/welcome" element={<Welcome />} />
-        <Route path="/login" element={<Login />} />
+<Route path="/welcome" element={<Welcome />} />
+      <Route path="/" element={<Navigate to="/welcome" replace />} />
+      <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/register" element={<Register />} />
@@ -47,7 +48,7 @@ export default function App() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/settings/email" element={<AccountEmailSettings />} />
         <Route path="/settings/password" element={<AccountPasswordSettings />} />
-        <Route path="/" element={<Assessment />} />
+        <Route path="/assess" element={<Assessment />} />
         <Route path="/results" element={<Results />} />
       </Route>
       <Route element={<ProtectedRoute role="admin" />}>
