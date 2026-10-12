@@ -1,8 +1,11 @@
 /**
  * Neural brain — medical-themed 3D particle field for the /welcome landing page.
  *
- * A ~2000-point particle "brain" (two hemispheres split by a longitudinal
- * fissure) with faint synaptic links, in the NeuroRisk teal palette.
+ * A ~2600-point ANATOMICALLY-EXACT brain: positions baked (area-weighted
+ * surface sampling) from real FreeSurfer meshes — cerebral cortex with true
+ * gyri/sulci and longitudinal fissure, cerebellum, brainstem (see
+ * brainPoints.ts for provenance/license) — with faint synaptic links,
+ * in the NeuroRisk cyan palette.
  * Motion: slow Y rotation, pointer parallax (±5°), and a full-page
  * scroll-linked EXPANSION — compact brain at the top of the page, particles
  * dispersing outward to fill the viewport as you scroll down, contracting
@@ -21,6 +24,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { BRAIN_POSITIONS } from "./brainPoints";
 
 /* ---------------------------------------------------------------- utils */
 
@@ -38,49 +42,18 @@ const TEAL = new THREE.Color("#38bdf8");
 const TEAL_LIGHT = new THREE.Color("#7dd3fc");
 const LINK = new THREE.Color("#0891b2");
 
-/** Build a brain-ish point cloud + colour buffer. */
-function buildBrain(count: number) {
-  const rand = mulberry32(1337);
-  const positions = new Float32Array(count * 3);
-  const colors = new Float32Array(count * 3);
-  const golden = Math.PI * (3 - Math.sqrt(5));
-  const scale = 1.65;
-
-  for (let i = 0; i < count; i++) {
-    // Fibonacci sphere -> uniform distribution.
-    const y0 = 1 - (i / (count - 1)) * 2;
-    const r = Math.sqrt(Math.max(0, 1 - y0 * y0));
-    const theta = golden * i;
-    let x = Math.cos(theta) * r;
-    let z = Math.sin(theta) * r;
-    let y = y0;
-
-    // Squash into an ellipsoid that reads as a brain silhouette.
-    x *= 0.82;
-    y *= 0.94;
-    z *= 1.06;
-
-    // Longitudinal fissure: nudge points off the midline.
-    const fissure = 0.07;
-    if (Math.abs(x) < fissure) x += x >= 0 ? fissure : -fissure;
-
-    // Organic jitter.
-    x += (rand() - 0.5) * 0.06;
-    y += (rand() - 0.5) * 0.06;
-    z += (rand() - 0.5) * 0.06;
-
-    positions[i * 3] = x * scale;
-    positions[i * 3 + 1] = y * scale;
-    positions[i * 3 + 2] = z * scale;
-
-    // Colour: brighter cyan toward the core, deep teal at the rim.
-    const depth = Math.min(1, Math.hypot(x, y, z));
-    const c = TEAL_LIGHT.clone().lerp(TEAL, depth);
-    colors[i * 3] = c.r;
-    colors[i * 3 + 1] = c.g;
-    colors[i * 3 + 2] = c.b;
+/** Colour buffer for the baked brain: brighter cyan toward the core,
+ *  deeper teal at the rim (radial depth gradient). */
+function buildColors(positions: Float32Array) {
+  const colors = new Float32Array(positions.length);
+  for (let i = 0; i < positions.length; i += 3) {
+    const d = Math.min(1, Math.hypot(positions[i], positions[i + 1], positions[i + 2]) / 2.1);
+    const c = TEAL_LIGHT.clone().lerp(TEAL, d);
+    colors[i] = c.r;
+    colors[i + 1] = c.g;
+    colors[i + 2] = c.b;
   }
-  return { positions, colors };
+  return colors;
 }
 
 /** Pick short-range pairs to draw as synaptic links. */
@@ -123,15 +96,16 @@ function Brain({ pointer, scroll }: Refs) {
   const pointMat = useRef<THREE.PointsMaterial>(null);
   const { camera } = useThree();
 
-  const POINTS = 2000;
-  const { positions, colors } = useMemo(() => buildBrain(POINTS), []);
+  const positions = useMemo(() => new Float32Array(BRAIN_POSITIONS), []);
+  const POINTS = positions.length / 3;
+  const colors = useMemo(() => buildColors(positions), [positions]);
   const links = useMemo(() => buildLinks(positions, 520), [positions]);
   // Base (compact) positions + per-point dispersal phase, both static.
   const base = useMemo(() => positions.slice(), [positions]);
   const phases = useMemo(() => {
     const rand = mulberry32(4242);
     return Array.from({ length: POINTS }, () => rand() * Math.PI * 2);
-  }, []);
+  }, [POINTS]);
 
   const EXPAND = 3.4; // max radial multiplier at full scroll
   const TURB = 0.28; // per-point dispersal amplitude
