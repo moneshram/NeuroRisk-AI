@@ -291,7 +291,9 @@ def batch_predict():
     try:
         probabilities = _score(prepared)
     except FileNotFoundError as exc:
-        return jsonify({"error": str(exc)}), 503
+        # Do not echo str(exc) to clients — it leaks server filesystem paths.
+        log.error("ML model artifact missing: %s", exc)
+        return jsonify({"error": "The prediction model is temporarily unavailable. Please try again later."}), 503
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:

@@ -16,6 +16,12 @@ import os
 
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 os.environ.setdefault("JWT_SECRET_KEY", "test-secret")
+# The pytest suite (and any app it builds via create_app()) hammers auth
+# endpoints far beyond production bursts. Rate limits must stay out of the
+# way: config.py reads RATELIMIT_DISABLED at import time and create_app()
+# disables the limiter when it is set. Tests that exercise the limiter
+# itself override this via create_app({"RATELIMIT_DISABLED": ""}).
+os.environ.setdefault("RATELIMIT_DISABLED", "1")
 
 # config.py calls load_dotenv(override=False), which imports the real
 # SMTP_HOST/SMTP_USERNAME/SMTP_PASSWORD/MAIL_FROM values from backend/.env

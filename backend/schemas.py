@@ -53,7 +53,11 @@ def validate_payload(data):
         raise ValueError("Hypertension and heart disease must be 0 or 1.")
 
     for key, values in ALLOWED.items():
-        if data[key] not in values:
+        value = data[key]
+        # Type guard first: an unhashable value (list/dict) would raise
+        # TypeError inside the set-membership check and turn a client
+        # validation error into a 500.
+        if not isinstance(value, str) or value not in values:
             raise ValueError(f"Invalid {key}.")
 
     return PatientInput(

@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_limiter import Limiter, RateLimitExceeded
 from config import Config
 from extensions import db, jwt
 from werkzeug.security import generate_password_hash
@@ -24,18 +25,124 @@ from batch import batch_bp
 
 logger = logging.getLogger(__name__)
 
-def create_app():
+# ---------------------------------------------------------------------------
+# Security helpers (shared by every app variant built below: the config-error
+# short-circuit, the normal app, and the import-failure fallback).
+# ---------------------------------------------------------------------------
+
+# Headers applied to every /api response. This is a pure JSON API (plus PDF
+# downloads) — CSP `default-src 'none'` blocks any browser-side execution or
+# embedding of responses, `frame-ancestors 'none'` + X-Frame-Options deny
+# clickjacking, nosniff kills MIME sniffing, and no-store stops shared
+# caches/proxies from holding patient data. Downloaded PDFs are safe under
+# the same policy because they are attachments, not pages.
+_API_SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
+}
+
+
+def _request_is_secure():
+    """True when the client-facing request used HTTPS.
+
+    Direct TLS terminates before Flask on Vercel/other proxies, so honour the
+    standard X-Forwarded-Proto header (set by the platform) as well.
+    """
+    if request.is_secure:
+        return True
+    proto = request.headers.get("X-Forwarded-Proto", "")
+    return proto.split(",")[0].strip().lower() == "https"
+
+
+def _apply_security_headers(app):
+    @app.after_request
+    def _set_security_headers(response):
+        if request.path.startswith("/api"):
+            for header, value in _API_SECURITY_HEADERS.items():
+                response.headers.setdefault(header, value)
+            response.headers["Cache-Control"] = "no-store"
+            if _request_is_secure():
+                # HSTS only over HTTPS — sending it over plain http would be
+                # ignored by browsers at best (or pin https on a host that
+                # does not serve it at worst).
+                response.headers.setdefault(
+                    "Strict-Transport-Security",
+                    "max-age=31536000; includeSubDomains",
+                )
+        return response
+
+
+def _apply_cors(app, origins):
+    """Single CORS registration for the /api surface.
+
+    The three call sites are mutually exclusive branches of one process (the
+    config-error short-circuit, a normal boot, and the import-failure
+    fallback), so this is deduplicated rather than removed. Origins are a
+    regex allowlist (localhost + this frontend's Vercel projects); the
+    Authorization/Content-Type headers are the only non-simple request
+    headers the frontend sends, and credentials stay off because auth is a
+    bearer token in a header, never a cookie.
+    """
+    CORS(
+        app,
+        resources={
+            r"/api/*": {
+                "origins": origins,
+                "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+                "allow_headers": ["Authorization", "Content-Type"],
+                "supports_credentials": False,
+            }
+        },
+    )
+
+
+def _rate_limit_key():
+    """Per-client identity for rate limiting.
+
+    On Vercel the request reaches the function through the platform proxy, so
+    remote_addr is a shared infrastructure IP (using it alone would put every
+    user in one global bucket). Prefer the client IP that the proxy writes
+    into X-Forwarded-For; fall back to remote_addr for direct/local requests.
+    """
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        first = forwarded.split(",")[0].strip()
+        if first:
+            return first
+    return request.remote_addr or "unknown"
+
+
+def _rate_limiting_enabled(app):
+    """Rate limiting is config-driven and auto-off for tests.
+
+    The pytest suite (and any future app built with TESTING=True) hammers
+    endpoints far beyond production bursts, so limits must not interfere:
+    disabled when TESTING is set or RATELIMIT_DISABLED=1.
+    """
+    if app.config.get("TESTING"):
+        return False
+    raw = str(app.config.get("RATELIMIT_DISABLED", "") or "").strip().lower()
+    return raw not in ("1", "true", "yes")
+
+
+def create_app(config_overrides=None):
     app = Flask(__name__)
     app.config.from_object(Config)
+    if config_overrides:
+        app.config.update(config_overrides)
 
-    # Startup guard: when Config carries a CONFIG_ERROR (e.g. DATABASE_URL is
-    # not set on Vercel), answer every /api request with a readable JSON 503
-    # instead of crashing the import — a crash shows up on Vercel only as
-    # FUNCTION_INVOCATION_FAILED, which the browser reports to users as
-    # "Unable to reach the server" and hides the real fix.
+    # Startup guard: when Config carries a CONFIG_ERROR (e.g. DATABASE_URL or
+    # JWT_SECRET_KEY is not set on Vercel), answer every /api request with a
+    # readable JSON 503 instead of crashing the import — a crash shows up on
+    # Vercel only as FUNCTION_INVOCATION_FAILED, which the browser reports to
+    # users as "Unable to reach the server" and hides the real fix.
     config_error = app.config.get("CONFIG_ERROR")
     if config_error:
-        CORS(app, resources={r"/api/*": {"origins": app.config["FRONTEND_ORIGINS"]}})
+        _apply_cors(app, app.config["FRONTEND_ORIGINS"])
+        _apply_security_headers(app)
         logger.error("Backend start aborted — configuration error: %s", config_error)
 
         @app.route("/api", defaults={"path": ""},
@@ -49,7 +156,36 @@ def create_app():
 
     db.init_app(app)
     jwt.init_app(app)
-    CORS(app, resources={r"/api/*": {"origins": app.config["FRONTEND_ORIGINS"]}})
+    _apply_cors(app, app.config["FRONTEND_ORIGINS"])
+    _apply_security_headers(app)
+
+    # In-memory rate limiting (Flask-Limiter). NOTE (serverless caveat): on
+    # Vercel each function instance keeps its own counters, so the effective
+    # limit is (configured limit x concurrent instances) and resets on every
+    # cold start. That is still enough to blunt brute-force attacks from one
+    # client against one instance; a shared store (Redis/Upstash) would be
+    # needed for strict global limits. Limits auto-disable under TESTING or
+    # RATELIMIT_DISABLED=1 (see _rate_limiting_enabled).
+    limiter = Limiter(
+        key_func=_rate_limit_key,
+        default_limits=["300/hour"],  # generous global per-client backstop
+        storage_uri="memory://",
+        headers_enabled=True,
+        enabled=_rate_limiting_enabled(app),
+        key_prefix="neurorisk",
+    )
+    # Flask-Limiter's route decorators keep only a weakref proxy to the
+    # Limiter, and init_app skips its own app.extensions registry when the
+    # limiter is disabled — so hold an explicit strong reference here for the
+    # lifetime of the app, otherwise the decorators raise ReferenceError.
+    app.extensions["neurorisk_limiter"] = limiter
+    limiter.init_app(app)
+
+    @app.errorhandler(RateLimitExceeded)
+    def _handle_rate_limit(exc):
+        # JSON body for the frontend; Retry-After / X-RateLimit-* headers are
+        # added by Flask-Limiter's after_request hook.
+        return jsonify({"error": "Too many requests. Please try again later."}), 429
 
     with app.app_context():
         db.create_all()
@@ -98,6 +234,7 @@ def create_app():
         return jsonify({"configured": configured})
 
     @app.post("/api/auth/forgot-password")
+    @limiter.limit("5/minute")  # brute-force / mail-bomb backstop (per client IP)
     def forgot_password():
         data = request.get_json(silent=True) or {}
         email = str(data.get("email", "")).strip().lower()
@@ -224,6 +361,7 @@ def create_app():
         return jsonify(response), 200
 
     @app.post("/api/auth/verify-otp")
+    @limiter.limit("8/minute")  # OTP-guessing backstop
     def verify_otp():
         """Verify a password-reset OTP without consuming it.
 
@@ -260,6 +398,7 @@ def create_app():
         return jsonify({"message": "One-time password verified."})
 
     @app.post("/api/auth/reset-password")
+    @limiter.limit("5/minute")  # credential-stuffing backstop
     def reset_password():
         data = request.get_json(silent=True) or {}
         email = str(data.get("email", "")).strip().lower()
@@ -306,47 +445,8 @@ def create_app():
         db.session.commit()
         return jsonify({"message": "Password reset successfully."})
 
-    @app.get("/api/auth/google-config")
-    def google_config():
-        # OAuth client IDs are public identifiers, not secrets. Exposing the
-        # configured client ID lets the frontend use one backend setting and
-        # avoids duplicating it in frontend/.env.
-        return jsonify({"configured": bool(app.config.get("GOOGLE_CLIENT_ID")), "client_id": app.config.get("GOOGLE_CLIENT_ID", "")})
-
-    @app.post("/api/auth/google")
-    def google_login():
-        data = request.get_json(silent=True) or {}
-        credential = str(data.get("credential", "")).strip()
-        if not credential:
-            return jsonify({"error": "Google sign-in credential is missing."}), 400
-        client_id = app.config.get("GOOGLE_CLIENT_ID", "")
-        if not client_id:
-            return jsonify({"error": "Google sign-in is not configured. Add GOOGLE_CLIENT_ID to backend/.env."}), 503
-        try:
-            from google.oauth2 import id_token
-            from google.auth.transport import requests as google_requests
-            claims = id_token.verify_oauth2_token(credential, google_requests.Request(), client_id)
-        except Exception as exc:
-            app.logger.warning("Google token verification failed: %s", exc)
-            return jsonify({"error": "The Google sign-in token is invalid or expired."}), 401
-        if not claims.get("email_verified"):
-            return jsonify({"error": "Your Google email address is not verified."}), 403
-        email = str(claims.get("email", "")).strip().lower()
-        name = str(claims.get("name") or claims.get("given_name") or "Google User").strip()
-        if not email:
-            return jsonify({"error": "Google did not provide an email address."}), 400
-        user = User.query.filter_by(email=email).first()
-        if user and user.role != "user":
-            return jsonify({"error": "This Google account cannot access the patient workspace."}), 403
-        if not user:
-            user = User(name=name[:120] or "Google User", email=email, role="user")
-            user.set_password(secrets.token_urlsafe(32))
-            db.session.add(user)
-            db.session.commit()
-        token = create_access_token(identity=str(user.id))
-        return jsonify({"access_token": token, "user": {"id": user.id, "name": user.name, "email": user.email, "role": user.role}})
-
     @app.post("/api/auth/register/send-otp")
+    @limiter.limit("5/minute")  # spam / mail-bomb backstop
     def register_send_otp():
         data = request.get_json(silent=True) or {}
         name = str(data.get("name", "")).strip()
@@ -371,7 +471,7 @@ def create_app():
         existing = PendingRegistration.query.filter_by(email=email).first()
         if existing:
             existing.name = name
-            existing.password_hash = generate_password_hash(password, method="pbkdf2:sha256")
+            existing.password_hash = generate_password_hash(password)
             existing.otp_hash = otp_hash
             existing.otp_expires_at = expires_at
             existing.attempts = 0
@@ -381,7 +481,7 @@ def create_app():
             pending = PendingRegistration(
                 name=name,
                 email=email,
-                password_hash=generate_password_hash(password, method="pbkdf2:sha256"),
+                password_hash=generate_password_hash(password),
                 otp_hash=otp_hash,
                 otp_expires_at=expires_at,
                 attempts=0,
@@ -419,6 +519,7 @@ def create_app():
         }), 200
 
     @app.post("/api/auth/register/verify-otp")
+    @limiter.limit("8/minute")  # OTP-guessing backstop
     def register_verify_otp():
         data = request.get_json(silent=True) or {}
         email = str(data.get("email", "")).strip().lower()
@@ -461,6 +562,7 @@ def create_app():
         return jsonify({"message": "Email verified. Account created successfully."}), 201
 
     @app.post("/api/auth/register/resend-otp")
+    @limiter.limit("5/minute")  # spam / mail-bomb backstop
     def register_resend_otp():
         data = request.get_json(silent=True) or {}
         email = str(data.get("email", "")).strip().lower()
@@ -522,6 +624,7 @@ def create_app():
         return jsonify({"error": "An internal server error occurred. Please try again."}), 500
 
     @app.post("/api/auth/register")
+    @limiter.limit("5/minute")  # mass-account-creation backstop
     def register():
         try:
             data = request.get_json(silent=True) or {}
@@ -548,6 +651,7 @@ def create_app():
             return jsonify({"error": "Unable to register your account. Please try again."}), 500
 
     @app.post("/api/auth/login")
+    @limiter.limit("10/minute")  # password-brute-force backstop
     def login():
         data = request.get_json(silent=True) or {}
         email = str(data.get("email", "")).strip().lower()
@@ -576,6 +680,7 @@ def create_app():
         })
 
     @app.post("/api/auth/admin-login")
+    @limiter.limit("8/minute")  # admin credential brute-force backstop
     def admin_login():
         return issue_token(role="admin")
 
@@ -758,6 +863,7 @@ def create_app():
 
     @app.put("/api/user/password")
     @jwt_required()
+    @limiter.limit("5/minute")  # logged-in password-change abuse backstop
     def update_user_password():
         user_id = int(get_jwt_identity())
         user = User.query.filter_by(id=user_id, role="user").first()
@@ -803,6 +909,7 @@ def create_app():
 
     @app.put("/api/admin/password")
     @roles_required("admin")
+    @limiter.limit("5/minute")
     def update_admin_password():
         admin_id = int(get_jwt_identity())
         admin = User.query.filter_by(id=admin_id, role="admin").first()
@@ -922,7 +1029,10 @@ def create_app():
             payload = patient.__dict__
             label, probability = predict(payload)
         except FileNotFoundError as exc:
-            return jsonify({"error": str(exc)}), 503
+            # Do not echo str(exc) to clients — it leaks server filesystem
+            # paths. Log the detail server-side instead.
+            app.logger.error("ML model artifact missing: %s", exc)
+            return jsonify({"error": "The prediction model is temporarily unavailable. Please try again later."}), 503
         except ValueError as exc:
             return jsonify({"error": str(exc)}), 400
 
@@ -945,7 +1055,10 @@ def create_app():
             payload = patient.__dict__
             label, probability = predict(payload)
         except FileNotFoundError as exc:
-            return jsonify({"error": str(exc)}), 503
+            # Do not echo str(exc) to clients — it leaks server filesystem
+            # paths. Log the detail server-side instead.
+            app.logger.error("ML model artifact missing: %s", exc)
+            return jsonify({"error": "The prediction model is temporarily unavailable. Please try again later."}), 503
         except ValueError as exc:
             return jsonify({"error": str(exc)}), 400
         except Exception as exc:
@@ -1321,7 +1434,8 @@ def _build_app():
         logger.exception("Backend failed to start")
         reason = str(exc) or exc.__class__.__name__
         broken = Flask(__name__)
-        CORS(broken, resources={r"/api/*": {"origins": Config.FRONTEND_ORIGINS}})
+        _apply_cors(broken, Config.FRONTEND_ORIGINS)
+        _apply_security_headers(broken)
 
         @broken.route("/api", defaults={"path": ""},
                       methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
@@ -1335,4 +1449,6 @@ def _build_app():
 app = _build_app()
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # debug=True would expose the Werkzeug interactive debugger (arbitrary
+    # code execution) to anyone who can reach the port — never enable it.
+    app.run(debug=False)

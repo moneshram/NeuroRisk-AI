@@ -5,7 +5,17 @@
       "src": "app.py",
       "use": "@vercel/python",
       "config": {
-        "includeFiles": ["ml/**"],
+        "includeFiles": [
+          "ml/**",
+          "!ml/artifacts/backup/**",
+          "!ml/samples/**",
+          "!instance/**",
+          "!venv/**",
+          "!tests/**",
+          "!**/__pycache__/**",
+          "!.env",
+          "!.env.*"
+        ],
         "maxDuration": 30
       }
     }

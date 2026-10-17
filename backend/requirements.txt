@@ -1,17 +1,17 @@
-Flask==3.1.1
+Flask==3.1.3
 Flask-Cors==6.0.1
 Flask-JWT-Extended==4.7.1
+Flask-Limiter==4.1.1
 Flask-SQLAlchemy==3.1.1
-Werkzeug==3.1.3
-python-dotenv==1.1.1
+Werkzeug==3.1.9
+python-dotenv==1.2.2
 scikit-learn==1.7.0
 joblib==1.5.1
 numpy==2.3.1
 pandas==2.3.0
-pytest==8.4.1
+pytest==9.0.3
 reportlab==5.0.0
 
-google-auth==2.40.3
 
 # PostgreSQL drivers — both are needed because the DATABASE_URL dialect
 # decides which one SQLAlchemy imports at runtime:

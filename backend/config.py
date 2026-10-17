@@ -1,6 +1,8 @@
 import logging
 import os
 import re
+import secrets
+from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -48,6 +50,17 @@ def _normalise_db_uri(uri):
 
 
 class Config:
+    # ----- Startup guards ---------------------------------------------------
+    # Never raise at import time on Vercel: an exception while loading the
+    # module makes Vercel answer every request (including CORS preflights)
+    # with an opaque "FUNCTION_INVOCATION_FAILED" 500, which the frontend
+    # surfaces to users as "Unable to reach the server" — hiding the actual
+    # fix. Instead record every problem; create_app() short-circuits on the
+    # combined CONFIG_ERROR and serves the messages as a readable JSON 503.
+    # (Unprefixed class attributes are skipped by app.config.from_object;
+    # the underscore names below stay private to the class body.)
+    _startup_errors = []
+
     # ----- Database ---------------------------------------------------------
     # In production (Vercel) DATABASE_URL MUST be set to a persistent
     # PostgreSQL connection string.  Ephemeral /tmp storage is no longer
@@ -56,15 +69,8 @@ class Config:
     # For local development, SQLite is used automatically when DATABASE_URL is
     # not set.
     _env_db = _env("DATABASE_URL")
-    # Never raise at import time on Vercel: an exception while loading the
-    # module makes Vercel answer every request (including CORS preflights)
-    # with an opaque "FUNCTION_INVOCATION_FAILED" 500, which the frontend
-    # surfaces to users as "Unable to reach the server" — hiding the actual
-    # fix. Instead record the problem; create_app() short-circuits on this
-    # flag and serves the message as a readable JSON 503.
-    CONFIG_ERROR = None
     if IS_VERCEL and not _env_db:
-        CONFIG_ERROR = (
+        _startup_errors.append(
             "DATABASE_URL environment variable is required on Vercel. "
             "Set it to a persistent PostgreSQL connection string "
             "(e.g. from Neon, Supabase, or Railway) in the Vercel dashboard "
@@ -111,7 +117,62 @@ class Config:
         )
 
     # ----- JWT --------------------------------------------------------------
-    JWT_SECRET_KEY = _env("JWT_SECRET_KEY", "dev-only-change-me")
+    # SECURITY: the signing secret MUST come from the environment in
+    # production. The previous hard-coded fallback ("dev-only-change-me")
+    # meant that a missing Vercel env var let anyone forge admin tokens, so
+    # on Vercel a missing/empty JWT_SECRET_KEY is now a startup error
+    # (CONFIG_ERROR -> readable JSON 503, same pattern as DATABASE_URL).
+    # Locally a random per-process secret is generated instead: sessions do
+    # not survive a restart (or a second process), which is the correct
+    # trade-off for development and impossible to forge from the outside.
+    _jwt_secret = _env("JWT_SECRET_KEY")
+    if IS_VERCEL and not _jwt_secret:
+        _startup_errors.append(
+            "JWT_SECRET_KEY environment variable is required on Vercel. "
+            "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\" "
+            "and set it in the Vercel dashboard under Settings → Environment "
+            "Variables, then redeploy."
+        )
+        _jwt_secret = "unconfigured-on-vercel"  # never used — create_app short-circuits
+    elif not _jwt_secret:
+        _jwt_secret = secrets.token_hex(32)
+        logger.warning(
+            "JWT_SECRET_KEY is not set — using a random per-process development "
+            "secret. Issued tokens will NOT survive a server restart. Set "
+            "JWT_SECRET_KEY in backend/.env (see .env.example) for stable sessions."
+        )
+    JWT_SECRET_KEY = _jwt_secret
+
+    # Access-token lifetime. Flask-JWT-Extended defaults to 15 minutes, which
+    # silently logged users out mid-session; 8 hours is a sane default for a
+    # bearer-token SPA. Override with JWT_ACCESS_TOKEN_EXPIRES_SECONDS.
+    try:
+        JWT_ACCESS_TOKEN_EXPIRES = timedelta(
+            seconds=int(_env("JWT_ACCESS_TOKEN_EXPIRES_SECONDS", str(8 * 3600)))
+        )
+    except ValueError:
+        logger.warning(
+            "JWT_ACCESS_TOKEN_EXPIRES_SECONDS is not a valid integer; "
+            "falling back to the 8-hour default."
+        )
+        JWT_ACCESS_TOKEN_EXPIRES = timedelta(seconds=8 * 3600)
+
+    # The frontend authenticates exclusively via the Authorization: Bearer
+    # header (no cookies) — restricting token locations removes the
+    # cookie-based attack surface (e.g. CSRF against token cookies).
+    JWT_TOKEN_LOCATION = ["headers"]
+
+    # ----- Startup error aggregation ---------------------------------------
+    # (Declared after the checks above so every guard contributes one
+    # readable sentence; create_app() serves CONFIG_ERROR as JSON 503.)
+    CONFIG_ERROR = " ".join(_startup_errors) if _startup_errors else None
+
+    # ----- Rate limiting ----------------------------------------------------
+    # Raw env string ("" means enabled). create_app() turns this into the
+    # boolean RATELIMIT_ENABLED; set RATELIMIT_DISABLED=1 to switch the
+    # limiter off entirely (used by the pytest suite and available as an
+    # emergency kill-switch in production).
+    RATELIMIT_DISABLED = _env("RATELIMIT_DISABLED", "")
 
     # ----- CORS -------------------------------------------------------------
     # Use regex patterns so every Vercel preview deployment of the frontend
@@ -127,6 +188,14 @@ class Config:
         FRONTEND_ORIGINS.extend(
             re.escape(o.strip()) for o in _extra.split(",") if o.strip()
         )
+    # Literal frontend base URL used to build password-reset links
+    # (app.config["FRONTEND_ORIGIN"]). NOTE: this used to be missing from
+    # Config entirely, so the forgot-password "link" flow crashed with a
+    # KeyError/500 whenever SMTP was configured. First value of the
+    # FRONTEND_ORIGIN env var, else a localhost dev default.
+    FRONTEND_ORIGIN = _env(
+        "FRONTEND_ORIGIN", "http://localhost:5173"
+    ).split(",")[0].strip()
 
     # ----- SMTP / email configuration ---------------------------------------
     # Use ``_env`` (not ``os.getenv``) so that variables set to an empty
@@ -146,7 +215,6 @@ class Config:
     MAIL_RETRY_DELAY_SECONDS = int(_env("MAIL_RETRY_DELAY_SECONDS", "5"))
     # If MAIL_FROM is omitted, use the SMTP account as the sender.
     MAIL_FROM = _env("MAIL_FROM") or SMTP_USERNAME
-    GOOGLE_CLIENT_ID = _env("GOOGLE_CLIENT_ID")
 
 
 logger.info(

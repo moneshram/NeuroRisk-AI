@@ -11,7 +11,12 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password, method="pbkdf2:sha256")
+        # Werkzeug's default method is scrypt (memory-hard KDF), stronger
+        # than the pbkdf2:sha256 previously hard-coded here. Existing pbkdf2
+        # hashes keep verifying: check_password_hash reads the algorithm from
+        # the stored string, so old users transparently keep working (and are
+        # re-hashed with scrypt on their next password change).
+        self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
