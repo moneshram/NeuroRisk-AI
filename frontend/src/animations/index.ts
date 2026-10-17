@@ -6,6 +6,5 @@ export { LiquidChrome } from "./LiquidChrome";
 export { LiquidChromeLayer } from "./LiquidChromeLayer";
 export { Ambient } from "./Ambient";
 export { CountUp } from "./CountUp";
-export { prefersReducedMotion, bindButtonMotion, useGsapEntrance } from "./gsapHelpers";
-export type { EntranceOptions } from "./gsapHelpers";
+export { prefersReducedMotion, bindButtonMotion } from "./gsapHelpers";
 export * as motionPresets from "./framerPresets";

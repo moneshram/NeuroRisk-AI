@@ -10,7 +10,6 @@
  * Originally from pages/batch/motion.ts (batch feature), generalized and
  * moved into the central animations folder.
  */
-import { useEffect, type RefObject } from "react";
 import { gsap } from "gsap";
 
 export function prefersReducedMotion(): boolean {
@@ -84,40 +83,4 @@ export function bindButtonMotion(root: HTMLElement): () => void {
     if (active) gsap.set(active, { scale: 1 });
     active = null;
   };
-}
-
-export type EntranceOptions = {
-  y?: number;
-  duration?: number;
-  stagger?: number;
-  ease?: string;
-};
-
-/**
- * Staggered entrance for every element matching `selector` inside `rootRef`.
- * Skipped under reduced motion; cleans up via gsap.context().revert().
- * Pass `deps` to re-run (e.g. [data] after a batch completes).
- */
-export function useGsapEntrance(
-  rootRef: RefObject<HTMLElement | null>,
-  selector: string,
-  deps: unknown[],
-  opts: EntranceOptions = {},
-) {
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root || prefersReducedMotion()) return;
-    const ctx = gsap.context(() => {
-      gsap.from(root.querySelectorAll(selector), {
-        y: opts.y ?? 16,
-        opacity: 0,
-        duration: opts.duration ?? 0.5,
-        stagger: opts.stagger ?? 0.08,
-        ease: opts.ease ?? "power2.out",
-        clearProps: "opacity,transform",
-      });
-    }, root);
-    return () => ctx.revert();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
 }

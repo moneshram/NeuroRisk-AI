@@ -11,14 +11,10 @@
  */
 import { useEffect, useState } from "react";
 import LiquidChrome from "./LiquidChrome";
+import { prefersReducedMotion } from "./gsapHelpers";
 
 const BRAND_BASE_COLOR: [number, number, number] = [0.04, 0.16, 0.38] /* royal blue tint, matches cobalt canvas */; /* muted graphite-teal, matches canvas #0a0e12 */
 const BRAND_SPEED = 0.72;
-
-function prefersReducedMotion(): boolean {
-  if (typeof window === "undefined" || !window.matchMedia) return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
 
 /**
  * True only when WebGL genuinely renders (not just when a context exists).

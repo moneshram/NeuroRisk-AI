@@ -210,13 +210,6 @@ html[data-theme="light"] .blob-glow::before {
   min-height: 54px;
 }
 
-/* Keep authentication cards comfortably centered */
-.auth-card {
-  width: 100%;
-  max-width: 460px;
-  margin-left: auto;
-  margin-right: auto;
-}
 /* Beautiful custom dropdown animation */
 @keyframes dropdownIn {
   from {
@@ -593,28 +586,7 @@ html[data-theme="light"] .modal-close {
   color: #172033 !important;
 }
 
-/* Password-reset method cards */
-.reset-method {
-  display: flex;
-  min-height: 78px;
-  align-items: center;
-  gap: .75rem;
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 1rem;
-  padding: .8rem .9rem;
-  text-align: left;
-  color: #94a3b8;
-  background: rgba(255,255,255,.025);
-  transition: border-color .2s ease, background .2s ease, transform .2s ease;
-}
-.reset-method:hover { border-color: rgba(34,211,238,.35); transform: translateY(-1px); }
-.reset-method-active { border-color: rgba(34,211,238,.55); background: rgba(34,211,238,.08); color: #e2e8f0; }
-.reset-method strong { display:block; color:#e2e8f0; font-size:.82rem; }
-.reset-method small { display:block; margin-top:.18rem; color:#64748b; font-size:.67rem; line-height:1.25; }
-html[data-theme="light"] .reset-method { border-color: rgba(15,23,42,.10); background: rgba(255,255,255,.72); color:#475569; }
-html[data-theme="light"] .reset-method-active { border-color: rgba(8,145,178,.45); background: rgba(8,145,178,.07); color:#0891b2; }
-html[data-theme="light"] .reset-method strong { color:#172033; }
-html[data-theme="light"] .reset-method small { color:#64748b; }
+/* Password-reset method cards removed (unused — no .reset-method usage in app) */
 
 /* Dashboard gauge/chart contrast: dark values stay unchanged; light mode gets readable tracks and points. */
 .dashboard-gauge-track { background: var(--dashboard-gauge-track); }
@@ -627,14 +599,6 @@ html[data-theme="light"] { --dashboard-gauge-track: rgba(15,23,42,.10); --dashbo
 html[data-theme="light"] .result-probability-track { background: rgba(15,23,42,.10); }
 html[data-theme="light"] .result-probability-track + div { min-width: 2px; }
 
-
-/* Google sign-in */
-.google-signin-wrap { display:flex; justify-content:center; min-height:44px; }
-.google-fallback-btn { width:100%; min-height:50px; display:flex; align-items:center; justify-content:center; gap:.7rem; border:1px solid rgba(148,163,184,.24); border-radius:1rem; background:rgba(255,255,255,.035); color:#e2e8f0; font-weight:600; font-size:1rem; transition:.2s ease; }
-.google-fallback-btn:hover { background:rgba(255,255,255,.08); transform:translateY(-1px); }
-.google-g { display:grid; place-items:center; width:24px; height:24px; border-radius:999px; background:#fff; overflow:hidden; flex:0 0 24px; }
-html[data-theme="light"] .google-fallback-btn { border-color:rgba(15,23,42,.12); background:rgba(255,255,255,.8); color:#172033; }
-html[data-theme="light"] .google-fallback-btn:hover { background:#fff; }
 
 /* Result probability bars stay clearly visible in light mode. */
 .result-probability-track { border:1px solid rgba(255,255,255,.08); min-height:12px; }
@@ -660,9 +624,6 @@ html[data-theme="light"] .result-probability-fill { box-shadow:0 0 10px rgba(8,1
     padding: 0.625rem 1rem;
     font-size: 0.8125rem;
   }
-  .auth-card {
-    max-width: 100%;
-  }
 }
 
 @media (min-width: 481px) and (max-width: 768px) {
@@ -684,13 +645,6 @@ html[data-theme="light"] .result-probability-fill { box-shadow:0 0 10px rgba(8,1
   /* Elevation */
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 16px 48px rgba(2, 6, 23, 0.45);
   --shadow-float: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 24px 64px rgba(2, 6, 23, 0.55);
-}
-
-.section-title {
-  font-size: var(--text-h2);
-  font-weight: 600;
-  letter-spacing: var(--text-display--letter-spacing);
-  line-height: 1.15;
 }
 
 .elevated-card {
